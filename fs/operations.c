@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 
 #include "betterassert.h"
 
@@ -134,21 +133,19 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
 }
 
 int tfs_sym_link(char const *target, char const *link_name) {
-    (void)target;
-    (void)link_name;
-    // ^ this is a trick to keep the compiler from complaining about unused
-    // variables. TODO: remove
-
-    PANIC("TODO: tfs_sym_link");
+    inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
+    int inumber = tfs_lookup(target, root_dir_inode);
+    add_dir_entry(root_dir_inode, link_name + 1,inumber);
+    return 0;
 }
 
 int tfs_link(char const *target, char const *link_name) {
-    (void)target;
-    (void)link_name;
-    // ^ this is a trick to keep the compiler from complaining about unused
-    // variables. TODO: remove
-
-    PANIC("TODO: tfs_link");
+    inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
+    int inumber = tfs_lookup(target, root_dir_inode);
+    inode_t* inode = inode_get(inumber);
+    inode->i_count++;
+    add_dir_entry(root_dir_inode,link_name + 1, inumber);
+    return 0;
 }
 
 int tfs_close(int fhandle) {
@@ -242,20 +239,30 @@ int tfs_unlink(char const *target) {
     PANIC("TODO: tfs_unlink");
 }
 
-
 int tfs_copy_from_external_fs(char const *source_path, char const *dest_path) {
     char buffer[1024];
-    size_t bytes_read;
     FILE* file = fopen(source_path,"r");
-    int outd = tfs_open(dest_path,TFS_O_CREAT | TFS_O_TRUNC);
-    if(file == NULL || outd == -1){
+    if(file == NULL){
         return -1;
     }
-    while((bytes_read = fread(buffer, sizeof(char), sizeof(buffer), file)) > 0){
-        if (tfs_write(outd, buffer, (size_t)bytes_read) != bytes_read)
-            return -1;
+
+    int outd = tfs_open(dest_path,TFS_O_CREAT | TFS_O_TRUNC);
+    if(outd == -1){
+        return -1;
     }
-    tfs_close(outd);
+
+    size_t bytes_read;
+    ssize_t bytes_written;
+    while((bytes_read = fread(buffer,sizeof(char),sizeof(buffer),file)) > 0){
+        bytes_written = tfs_write(outd, buffer,(size_t) bytes_read);
+        if(bytes_written != bytes_read){
+            return -1;
+        }
+    }
+    
     fclose(file);
+    tfs_close(outd);
     return 0;
 }
+
+

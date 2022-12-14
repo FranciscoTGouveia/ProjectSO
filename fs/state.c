@@ -211,11 +211,11 @@ int inode_create(inode_type i_type) {
         // with inumber==-1)
         int b = data_block_alloc();
         if (b == -1) {
-            // ensure fields are initialized
+            //ensure fields are initialized
             inode->i_size = 0;
             inode->i_data_block = -1;
 
-            // run regular deletion process
+            //run regular deletion process
             inode_delete(inumber);
             return -1;
         }
