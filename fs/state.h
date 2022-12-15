@@ -25,7 +25,6 @@ typedef struct {
     inode_type i_node_type;
 
     size_t i_size;
-    char i_soft_name[MAX_FILE_NAME];
     int i_data_block;
     int i_count;
     // in a more complete FS, more fields could exist here

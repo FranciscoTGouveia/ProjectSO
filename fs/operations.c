@@ -91,7 +91,8 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
         ALWAYS_ASSERT(inode != NULL,
                       "tfs_open: directory files must have an inode");
         if (inode->i_node_type == T_SOFT_LINK) {
-            if((inum = tfs_lookup(inode->i_soft_name,root_dir_inode)) == -1) {return -1;}
+            void* block = data_block_get(inode->i_data_block);
+            if((inum = tfs_lookup(block,root_dir_inode)) == -1) {return -1;}
             inode = inode_get(inum);
             
         }
@@ -138,11 +139,11 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
 
 int tfs_sym_link(char const *target, char const *link_name) {
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
-    int inumber = inode_create(T_SOFT_LINK), inumber_target = tfs_lookup(target,root_dir_inode);
-    inode_t *inode = inode_get(inumber), *inode_target = inode_get(inumber_target);
-    strcpy(inode->i_soft_name, target);
-    inode->i_size = inode_target->i_size;
-    inode->i_data_block = inode_target->i_data_block;
+    int inumber = inode_create(T_SOFT_LINK);
+    inode_t *inode = inode_get(inumber);
+    void* block = data_block_get(inode->i_data_block);
+    if (block == NULL) {return -1;}
+    strcpy(block,target);
     add_dir_entry(root_dir_inode, link_name + 1,inumber);
     return 0;
 }
