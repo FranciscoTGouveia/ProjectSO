@@ -262,13 +262,11 @@ int inode_create(inode_type i_type)
         inode_table[inumber].i_size = 0;
         inode_table[inumber].i_data_block = -1;
         inode_table[inumber].i_count = 1;
-        inode_table[inumber].i_status = NOT_DELETED;
         break;
 
     case T_SOFT_LINK:
         inode_table[inumber].i_size = 0;
         inode_table[inumber].i_data_block = -1;
-        inode_table[inumber].i_status = NOT_DELETED;
         inode_table[inumber].i_count = 1;
 
         break;
@@ -301,7 +299,6 @@ void inode_delete(int inumber)
         data_block_free(inode_table[inumber].i_data_block);
     }
     freeinode_ts[inumber] = FREE;
-    inode_table[inumber].i_status = DELETED;
 }
 
 /**

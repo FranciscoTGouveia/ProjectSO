@@ -18,13 +18,11 @@ typedef struct {
 } dir_entry_t;
 
 typedef enum { T_FILE, T_DIRECTORY, T_SOFT_LINK} inode_type;
-typedef enum {NOT_DELETED, DELETED} inode_status;
 /**
  * Inode
  */
 typedef struct {
     inode_type i_node_type;
-    inode_status i_status;
 
     size_t i_size;
     char i_soft_name[MAX_FILE_NAME];

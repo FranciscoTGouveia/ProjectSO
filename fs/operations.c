@@ -85,15 +85,14 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
     int inum = tfs_lookup(name, root_dir_inode);
     size_t offset;
 
-    if (inum >= 0 && inode_get(inum)->i_count > 0 && inode_get(inum)->i_status == NOT_DELETED) {
+    if (inum >= 0 ) {
         // The file already exists
         inode_t *inode = inode_get(inum);
         ALWAYS_ASSERT(inode != NULL,
                       "tfs_open: directory files must have an inode");
         if (inode->i_node_type == T_SOFT_LINK) {
-            inum = tfs_lookup(inode->i_soft_name,root_dir_inode);
+            if((inum = tfs_lookup(inode->i_soft_name,root_dir_inode)) == -1) {return -1;}
             inode = inode_get(inum);
-            if (inode->i_status == DELETED) {return -1;}
             
         }
         // Truncate (if requested)
@@ -245,15 +244,16 @@ int tfs_unlink(char const *target) {
     if (inode->i_node_type != T_SOFT_LINK) {
         if (inode->i_count > 1) {
             inode->i_count--;
+            clear_dir_entry(inode_get(ROOT_DIR_INUM), target + 1);
             return 0;
         }
         inode->i_count = 0;
-        clear_dir_entry(inode_get(ROOT_DIR_INUM), target);
+        clear_dir_entry(inode_get(ROOT_DIR_INUM), target + 1);
         inode_delete(inumber);
         return 0;
     } else {
         inode->i_count = 0;
-        clear_dir_entry(inode_get(ROOT_DIR_INUM), target);
+        clear_dir_entry(inode_get(ROOT_DIR_INUM), target + 1);
         inode_delete(inumber);
         return 0;
     }
