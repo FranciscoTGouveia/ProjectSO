@@ -17,15 +17,17 @@ typedef struct {
     int d_inumber;
 } dir_entry_t;
 
-typedef enum { T_FILE, T_DIRECTORY} inode_type;
-
+typedef enum { T_FILE, T_DIRECTORY, T_SOFT_LINK} inode_type;
+typedef enum {NOT_DELETED, DELETED} inode_status;
 /**
  * Inode
  */
 typedef struct {
     inode_type i_node_type;
+    inode_status i_status;
 
     size_t i_size;
+    char i_soft_name[MAX_FILE_NAME];
     int i_data_block;
     int i_count;
     // in a more complete FS, more fields could exist here

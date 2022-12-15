@@ -85,12 +85,17 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
     int inum = tfs_lookup(name, root_dir_inode);
     size_t offset;
 
-    if (inum >= 0) {
+    if (inum >= 0 && inode_get(inum)->i_count > 0 && inode_get(inum)->i_status == NOT_DELETED) {
         // The file already exists
         inode_t *inode = inode_get(inum);
         ALWAYS_ASSERT(inode != NULL,
                       "tfs_open: directory files must have an inode");
-
+        if (inode->i_node_type == T_SOFT_LINK) {
+            inum = tfs_lookup(inode->i_soft_name,root_dir_inode);
+            inode = inode_get(inum);
+            if (inode->i_status == DELETED) {return -1;}
+            
+        }
         // Truncate (if requested)
         if (mode & TFS_O_TRUNC) {
             if (inode->i_size > 0) {
@@ -134,7 +139,11 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
 
 int tfs_sym_link(char const *target, char const *link_name) {
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
-    int inumber = tfs_lookup(target, root_dir_inode);
+    int inumber = inode_create(T_SOFT_LINK), inumber_target = tfs_lookup(target,root_dir_inode);
+    inode_t *inode = inode_get(inumber), *inode_target = inode_get(inumber_target);
+    strcpy(inode->i_soft_name, target);
+    inode->i_size = inode_target->i_size;
+    inode->i_data_block = inode_target->i_data_block;
     add_dir_entry(root_dir_inode, link_name + 1,inumber);
     return 0;
 }
@@ -143,6 +152,7 @@ int tfs_link(char const *target, char const *link_name) {
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
     int inumber = tfs_lookup(target, root_dir_inode);
     inode_t* inode = inode_get(inumber);
+    if (inode->i_node_type == T_SOFT_LINK) {return -1;}
     inode->i_count++;
     add_dir_entry(root_dir_inode,link_name + 1, inumber);
     return 0;
@@ -164,11 +174,9 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     if (file == NULL) {
         return -1;
     }
-
     //  From the open file table entry, we get the inode
     inode_t *inode = inode_get(file->of_inumber);
     ALWAYS_ASSERT(inode != NULL, "tfs_write: inode of open file deleted");
-
     // Determine how many bytes to write
     size_t block_size = state_block_size();
     if (to_write + file->of_offset > block_size) {
@@ -232,11 +240,23 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
 }
 
 int tfs_unlink(char const *target) {
-    (void)target;
-    // ^ this is a trick to keep the compiler from complaining about unused
-    // variables. TODO: remove
-
-    PANIC("TODO: tfs_unlink");
+    int inumber = tfs_lookup(target,inode_get(ROOT_DIR_INUM));
+    inode_t* inode = inode_get(inumber);
+    if (inode->i_node_type != T_SOFT_LINK) {
+        if (inode->i_count > 1) {
+            inode->i_count--;
+            return 0;
+        }
+        inode->i_count = 0;
+        clear_dir_entry(inode_get(ROOT_DIR_INUM), target);
+        inode_delete(inumber);
+        return 0;
+    } else {
+        inode->i_count = 0;
+        clear_dir_entry(inode_get(ROOT_DIR_INUM), target);
+        inode_delete(inumber);
+        return 0;
+    }
 }
 
 int tfs_copy_from_external_fs(char const *source_path, char const *dest_path) {
