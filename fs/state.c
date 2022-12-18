@@ -115,7 +115,7 @@ int state_init(tfs_params params)
     }
 
     inode_table = malloc(INODE_TABLE_SIZE * sizeof(inode_t));
-    lock_inode = malloc(INODE_TABLE_SIZE * sizeof(pthread_rwlock_t));
+    lock_inode =(pthread_rwlock_t *) malloc(INODE_TABLE_SIZE * sizeof(pthread_rwlock_t));
     freeinode_ts = malloc(INODE_TABLE_SIZE * sizeof(allocation_state_t));
     fs_data = malloc(DATA_BLOCKS * BLOCK_SIZE);
     free_blocks = malloc(DATA_BLOCKS * sizeof(allocation_state_t));
@@ -145,9 +145,7 @@ int state_init(tfs_params params)
     }
 
     for (size_t i = 0; i < INODE_TABLE_SIZE; i++) {
-        pthread_rwlock_t lock;
-        pthread_rwlock_init(&lock,NULL);
-        lock_inode[i] = lock;
+        pthread_rwlock_init(&lock_inode[i],NULL);
     }
 
     return 0;
@@ -202,7 +200,7 @@ static int inode_alloc(void)
         {
             //  Found a free entry, so takes it for the new inode
             freeinode_ts[inumber] = TAKEN;
-            pthread_rwlock_wrlock(&lock_inode_table);
+            pthread_rwlock_unlock(&lock_inode_table);
             return (int)inumber;
         }
     }
@@ -343,8 +341,8 @@ inode_t *inode_get(int inumber)
     return &inode_table[inumber];
 }
 
-pthread_rwlock_t inode_lock_get(int inumber) {
-    return lock_inode[inumber];
+pthread_rwlock_t* inode_lock_get(int inumber) {
+    return &lock_inode[inumber];
 }
 
 /**
@@ -355,7 +353,7 @@ pthread_rwlock_t inode_lock_get(int inumber) {
  *   - sub_name: sub file name
  *
  * Returns 0 if successful, -1 otherwise.
- *
+ 
  * Possible errors:
  *   - inode is not a directory inode.
  *   - Directory does not contain an entry for sub_name.
