@@ -146,8 +146,11 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
 
 int tfs_sym_link(char const *target, char const *link_name) {
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
+    if (root_dir_inode == NULL) {return -1;}
     int inumber = inode_create(T_SOFT_LINK);
+    if (inumber == -1) {return -1;}
     inode_t *inode = inode_get(inumber);
+    if (inode == NULL) {return -1;}
     void* block = data_block_get(inode->i_data_block);
     if (block == NULL) {return -1;}
     strcpy(block,target);
@@ -157,14 +160,14 @@ int tfs_sym_link(char const *target, char const *link_name) {
 
 int tfs_link(char const *target, char const *link_name) {
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
+    if (root_dir_inode == NULL) {return -1;}
     int inumber = tfs_lookup(target, root_dir_inode);
+    if (inumber == -1) {return -1;}
     pthread_rwlock_t* lock = inode_lock_get(inumber);
     pthread_rwlock_wrlock(lock);
     inode_t* inode = inode_get(inumber);
-    if (inode->i_node_type == T_SOFT_LINK) {
-        pthread_rwlock_unlock(lock);
-        return -1;
-    }
+    if (inode == NULL) {pthread_rwlock_unlock(lock);return -1;}
+    if (inode->i_node_type == T_SOFT_LINK) {pthread_rwlock_unlock(lock);return -1;}
     inode->i_count++;
     add_dir_entry(root_dir_inode,link_name + 1, inumber);
     pthread_rwlock_unlock(lock);
@@ -190,7 +193,6 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     //  From the open file table entry, we get the inode
     pthread_rwlock_t* lock = inode_lock_get(file->of_inumber);
     pthread_rwlock_wrlock(lock);
-    printf("%ld\n",file->of_offset);
     inode_t *inode = inode_get(file->of_inumber);
     ALWAYS_ASSERT(inode != NULL, "tfs_write: inode of open file deleted");
     // Determine how many bytes to write
@@ -261,28 +263,16 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
 
 int tfs_unlink(char const *target) {
     int inumber = tfs_lookup(target,inode_get(ROOT_DIR_INUM));
+    if (inumber == -1) {return -1;}
     pthread_rwlock_t* lock = inode_lock_get(inumber);
     pthread_rwlock_wrlock(lock);
-    inode_t* inode = inode_get(inumber);
-    if (inode->i_node_type != T_SOFT_LINK) {
-        if (inode->i_count > 1) {
-            inode->i_count--;
-            clear_dir_entry(inode_get(ROOT_DIR_INUM), target + 1);
-            pthread_rwlock_unlock(lock);
-            return 0;
-        }
-        inode->i_count = 0;
-        clear_dir_entry(inode_get(ROOT_DIR_INUM), target + 1);
-        inode_delete(inumber);
-        pthread_rwlock_unlock(lock);
-        return 0;
-    } else {
-        inode->i_count = 0;
-        clear_dir_entry(inode_get(ROOT_DIR_INUM), target + 1);
-        inode_delete(inumber);
-        pthread_rwlock_unlock(lock);
-        return 0;
-    }
+    inode_t* inode = inode_get(inumber), *root = inode_get(ROOT_DIR_INUM);
+    if (inode == NULL || root == NULL) {pthread_rwlock_unlock(lock);return -1;} 
+    clear_dir_entry(root, target + 1);
+    if (inode->i_count > 1) {inode->i_count--;} 
+    else {inode_delete(inumber);}
+    pthread_rwlock_unlock(lock);
+    return 0;
 }
 
 int tfs_copy_from_external_fs(char const *source_path, char const *dest_path) {
