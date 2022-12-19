@@ -10,7 +10,7 @@
  * acess the file, through the hard link */
 
 
-uint8_t const file_contents[] = "SO PROJECT!";
+uint8_t const file_contents[] = "links";
 char const *target_path1 = "/ficheiro1";
 char const *link_path1 = "/link1";
 char const *link_path2 = "/link2";

@@ -10,7 +10,7 @@
    and read through the other */
 
 
-uint8_t const file_contents[] = "SO PROJECT!";
+uint8_t const file_contents[] = "links";
 char const *target_path1 = "/ficheiro1";
 char const *target_path2 = "/ficheiro2";
 char const *link_path1 = "/link1";

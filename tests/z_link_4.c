@@ -5,15 +5,15 @@
 #include <stdio.h>
 #include <string.h>
 
-/* This test evaluates the capability of TFS to handle soft
- * links to another soft links */
+/* This test evaluates the capability of TFS to create links
+   to files that doesn't exist */ 
 
 
 uint8_t const file_contents[] = "links";
 char const *target_path1 = "/ficheiro1";
+char const *target_path2 = "/ficheiro2";
 char const *link_path1 = "/link1";
 char const *link_path2 = "/link2";
-
 
 void assert_contents_ok(char const *path) {
     int f = tfs_open(path, 0);
@@ -40,23 +40,24 @@ int main() {
   // Initiate Técnico Filesystem
   assert(tfs_init(NULL) != -1);
   
-  // Create a new file
-  int f = tfs_open(target_path1, TFS_O_CREAT);
-  assert(f != -1);
-  assert(tfs_close(f) != -1);
-  
-  // Write contents to that new file
-  write_contents(target_path1);
-  assert_contents_ok(target_path1);
-
-  // Create a soft link to the file
+  // Create soft link to non-existent file
   assert(tfs_sym_link(target_path1, link_path1) != -1);
-  assert_contents_ok(link_path1);
-
-  // Create a soft link to that soft link
-  assert(tfs_sym_link(link_path1, link_path2) != -1);
-  assert_contents_ok(link_path2);
   
+  // Create hard link to non-existent file
+  assert(tfs_link(target_path2, link_path2) == -1);
+    
+  // Assure that the links are working properly
+  assert(tfs_open(link_path1, 0b0) == -1);
+  assert(tfs_open(link_path2, 0b0) == -1);;
+  
+  // Create the file that the softlink points to
+  assert(tfs_open(target_path1, TFS_O_CREAT) != -1);
+  assert(tfs_open(link_path1, 0b0) != -1);
+  
+  // Create the file that the hardlink points to
+  assert(tfs_open(target_path2, TFS_O_CREAT) != -1);
+  assert(tfs_open(link_path2, 0b0) == -1);
+
   printf("Successful test.\n");
   return 0;
 }
