@@ -19,6 +19,7 @@ char *link_path2 = "/link2";
 char *link_path3 = "/link3";
 char *link_path4 = "/link4";
 
+
 void create_new_file(char *path) {
   int fileDescriptor = tfs_open(path, TFS_O_CREAT);
   assert(fileDescriptor != -1);
@@ -43,7 +44,6 @@ void write_contents(char *path) {
 
 void *thread_function_1() {
   write_contents(target_path1);
-  assert_contents_ok(target_path1);
   sleep(1);
   assert_contents_ok(link_path1);
   assert(tfs_unlink(link_path1)!= -1);
@@ -52,7 +52,6 @@ void *thread_function_1() {
 
 void *thread_function_2() {
   assert(tfs_link(target_path1, link_path1) != -1);
-  assert_contents_ok(link_path1);
   sleep(1);
   assert(tfs_open(link_path1, 0b0) == -1);
   return 0;
@@ -61,10 +60,16 @@ void *thread_function_2() {
 
 
 void *thread_function_3() {
+  for (int i = 0; i < 3; i++) {
+    write_contents(target_path2);
+  }
   return 0;
 }
 
 void *thread_function_4() {
+  for (int i = 0; i < 3; i++) {
+    assert_contents_ok(target_path2);
+  }
   return 0;
 }
 
