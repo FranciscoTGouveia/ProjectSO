@@ -17,6 +17,7 @@ int main() {
   
   // Copy external files to Técnico Filesystem
   assert(tfs_copy_from_external_fs(path_src_file, path_copied_file) == -1);
+  assert(tfs_open(path_copied_file, 0b0) != -1);
 
   printf("Successful test.\n");
   return 0;

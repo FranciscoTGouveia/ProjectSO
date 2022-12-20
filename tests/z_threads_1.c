@@ -14,6 +14,7 @@ char *target_path1 = "/ficheiro1";
 char *target_path2 = "/ficheiro2";
 char *link_path1 = "/link1";
 char *link_path2 = "/link2";
+char *link_path3 = "/link3";
 
 void create_new_file(char *path) {
   int fileDescriptor = tfs_open(path, TFS_O_CREAT);
@@ -40,31 +41,19 @@ void write_contents(char *path) {
 void *thread_function_1() {
   assert(tfs_sym_link(target_path1, link_path1) != -1);
   write_contents(link_path1);
+  assert(tfs_sym_link(link_path1, link_path2) != -1);
+  assert_contents_ok(link_path2);
+  assert(tfs_unlink(link_path1) != -1);
+  assert(tfs_open(link_path2, 0b0) == -1);
   return 0;
 }
 
 void *thread_function_2() {
-  assert(tfs_link(target_path1, link_path2) != -1);
-  int phi = 0, theta = 0, f;
-  for (int i = 0; i < 1000; i++) { // Wait for the link
-    f = tfs_open(link_path1, 0b0);
-    if (f != -1) { 
-      phi = 1;
-      break; 
-    }
-  }
-  assert(phi == 1);
-  for (int i = 0; i < 1000; i++) { // Wait for a read
-    char buffer[sizeof(file_contents)];
-    if (tfs_read(f, buffer, strlen(buffer)) == strlen(buffer)) {
-      theta = 1;
-      break;
-    }
-  }
-  assert(theta == 1);
-  assert_contents_ok(link_path1);
-  assert(tfs_unlink(target_path1) != -1);
-  assert_contents_ok(link_path2);
+  assert(tfs_link(target_path2, link_path3) != -1);
+  write_contents(link_path3);
+  assert_contents_ok(target_path2);
+  assert(tfs_unlink(target_path2) != -1);
+  assert_contents_ok(link_path3);
   return 0;
 }
 
