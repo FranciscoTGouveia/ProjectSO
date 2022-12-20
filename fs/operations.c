@@ -94,13 +94,12 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
         ALWAYS_ASSERT(inode != NULL,
                       "tfs_open: directory files must have an inode");
         if (inode->i_node_type == T_SOFT_LINK) {
-            char* block = data_block_get(inode->i_data_block);
-            if((inum = tfs_lookup(block,root_dir_inode)) == -1) {
+            inum = get_path_recursive(inum);
+            if (inum == -1) {
                 pthread_rwlock_unlock(lock);
                 return -1;
             }
             inode = inode_get(inum);
-            
         }
         // Truncate (if requested)
         if (mode & TFS_O_TRUNC) {
@@ -286,7 +285,6 @@ int tfs_copy_from_external_fs(char const *source_path, char const *dest_path) {
     if(outd == -1){
         return -1;
     }
-
     size_t bytes_read;
     ssize_t bytes_written;
     while((bytes_read = fread(buffer,sizeof(char),sizeof(buffer),file)) > 0){

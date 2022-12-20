@@ -1,0 +1,19 @@
+{
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/olione/ProjectSO/tests",
+            "binaryPath": "/home/olione/ProjectSO/tests/custom_thread_test01",
+            "binaryArgs": []
+        },
+        {
+            "cwd": "/home/olione/ProjectSO/tests",
+            "binaryPath": "/home/olione/ProjectSO/tests/z_link_1",
+            "binaryArgs": []
+        },
+        {
+            "cwd": "/home/olione/ProjectSO/tests",
+            "binaryPath": "/home/olione/ProjectSO/tests/z_link_4",
+            "binaryArgs": []
+        }
+    ]
+}

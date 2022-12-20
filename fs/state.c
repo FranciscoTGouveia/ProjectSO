@@ -620,3 +620,15 @@ open_file_entry_t *get_open_file_entry(int fhandle)
     pthread_rwlock_unlock(&lock_file_table);
     return &open_file_table[fhandle];
 }
+
+int get_path_recursive(int inumber) {
+    if (inumber == -1) {return -1;}
+    inode_t* inode = inode_get(inumber);
+    if (inode->i_node_type != T_SOFT_LINK) {
+        return inumber;
+    }
+    char* block = data_block_get(inode->i_data_block);
+    inode_t* root = inode_get(ROOT_DIR_INUM);
+    int inum = find_in_dir(root, ++block);
+    return get_path_recursive(inum);
+}   
