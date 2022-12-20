@@ -95,10 +95,12 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
                       "tfs_open: directory files must have an inode");
         if (inode->i_node_type == T_SOFT_LINK) {
             inum = get_path_recursive(inum);
+            my_unlock(lock);
             if (inum == -1) {
-                my_unlock(lock);
                 return -1;
             }
+            lock = inode_lock_get(inum);
+            my_r_lock(lock);
             inode = inode_get(inum);
         }
         // Truncate (if requested)
@@ -146,14 +148,22 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
 int tfs_sym_link(char const *target, char const *link_name) {
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
     if (root_dir_inode == NULL) {return -1;}
+    int inumber_target = tfs_lookup(target, root_dir_inode);
+    if (inumber_target == -1) {return -1;}
+    pthread_rwlock_t* lock_target = inode_lock_get(inumber_target);
+    my_r_lock(lock_target);
     int inumber = inode_create(T_SOFT_LINK);
-    if (inumber == -1) {return -1;}
+    if (inumber == -1) {my_unlock(lock_target);return -1;}
+    pthread_rwlock_t* lock = inode_lock_get(inumber);
+    my_w_lock(lock);
     inode_t *inode = inode_get(inumber);
-    if (inode == NULL) {return -1;}
+    if (inode == NULL) {my_unlock(lock_target);my_unlock(lock);return -1;}
     void* block = data_block_get(inode->i_data_block);
-    if (block == NULL) {return -1;}
+    if (block == NULL) {my_unlock(lock_target);my_unlock(lock);return -1;}
     strcpy(block,target);
     add_dir_entry(root_dir_inode, link_name + 1,inumber);
+    my_unlock(lock_target);
+    my_unlock(lock);
     return 0;
 }
 
