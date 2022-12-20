@@ -60,8 +60,6 @@ void *thread_function_2() {
   return 0;
 }
 
-
-
 void *thread_function_3() {
   write_contents(target_path3);
   assert_contents_ok(target_path3);
