@@ -32,27 +32,37 @@ void write_contents(char const *path) {
 }
 
 void *th_run01() {
-    if (tfs_sym_link(f1, f2) == -1) {
-        assert(tfs_unlink(f2) != -1);
-        assert(tfs_sym_link(f1, f2) != -1);
+    assert(tfs_sym_link(f1, f2) != -1);
+
+    int f = tfs_open(f2, 0);
+
+    if (f != -1) { // Still hasnt been unlinked by thread 3
+        char buffer[50];
+        assert(tfs_read(f, buffer, sizeof(buffer)) != -1);
+        assert(tfs_close(f) != -1);
     }
+
     return 0;
 }
 
 void *th_run02() {
-    if (tfs_link(f1, f2) == -1) {
-        assert(tfs_unlink(f2) != -1);
-        assert(tfs_link(f1, f2) != -1);
-    }
+    assert(tfs_link(f1, f3) != -1);
+
+    write_contents(f3);
+
     return 0;
 }
 
 void *th_run03() {
-    tfs_link(f1, f3);
-    write_contents(f3);
-    assert_contents_ok(f1);
-    assert(tfs_unlink(f3) != -1);
-    assert_contents_ok(f2);
+    int f = tfs_open(f1, 0);
+    assert(f != -1);
+
+    char buffer[50];
+    assert(tfs_read(f, buffer, sizeof(buffer)) != -1);
+
+    assert(tfs_close(f) != -1);
+
+    assert(tfs_unlink(f1) != -1);
     return 0;
 }
 
@@ -66,23 +76,24 @@ int main() {
     assert(tfs_init(NULL) != -1);
 
     create(f1);
-    create(f2);
-    create(f3);
 
     // Creates threads
     pthread_t t1, t2, t3;
 
-    // run1 - Creates a soft_link if the linkname its already taken in unlinks it and tries to create it again
+    // run1 - Creates a soft_link and tries to read through it
     assert(pthread_create(&t1, NULL, th_run01, NULL) == 0);
-    // run2 - Creates a hard_link if the linkname its already taken in unlinks it and tries to create it again
+    // run2 - Creates a hard_link and writes through it
     assert(pthread_create(&t2, NULL, th_run02, NULL) == 0);
-    //run3 - Creates a hard_link to a file, writes through the link and reads through the file, unlinks it reads through other link
+    //run3 - Reads a file and unlinks the previously created soft_link
     assert(pthread_create(&t3, NULL, th_run03, NULL) == 0);
 
     // Joins all threads
     assert(pthread_join(t1, NULL) == 0);
     assert(pthread_join(t2, NULL) == 0);
     assert(pthread_join(t3, NULL) == 0);
+
+    assert_contents_ok(f3);
+    assert(tfs_open(f1, 0) == -1);
 
     assert(tfs_destroy() != -1);
 
