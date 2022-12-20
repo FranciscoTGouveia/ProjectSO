@@ -360,6 +360,13 @@ inode_t *inode_get(int inumber){
     return phi;
 }
 
+
+/**
+ * @brief Obtains a pointer to a lock from its inumber 
+ * 
+ * @param inumber lock's respective inumber 
+ * @return pointer to lock
+ */
 pthread_rwlock_t* inode_lock_get(int inumber) {
     return &lock_inode[inumber];
 }
@@ -649,11 +656,23 @@ open_file_entry_t *get_open_file_entry(int fhandle)
     return &open_file_table[fhandle];
 }
 
-
+/**
+ * @brief Obtains a pointer to a lock from its file handler
+ * 
+ * @param fhandle file handle 
+ * @return pointer to the lock
+ */
 pthread_rwlock_t *get_open_file_lock(int fhandle) {
     return &lock_file[fhandle];
 }
 
+
+/**
+ * @brief Gets the inumber to the original file in a symlink chain
+ * 
+ * @param inumber inumber of the first sym link in the chain 
+ * @return inumber
+ */
 int get_path_recursive(int inumber) {
     if (inumber == -1) {return -1;}
     inode_t* inode = inode_get(inumber);
@@ -666,18 +685,36 @@ int get_path_recursive(int inumber) {
     return get_path_recursive(inum);
 }   
 
+
+
+/**
+ * @brief Checks for read locks errors  
+ * 
+ * @param lock read lock
+ */
 void my_r_lock(pthread_rwlock_t* lock) {
    if (pthread_rwlock_rdlock(lock) != 0) {
         exit(1);
    }
 }
 
+/**
+ * @brief Checks for write locks errors 
+ * 
+ * @param lock write lock
+ */
 void my_w_lock(pthread_rwlock_t* lock) {
    if (pthread_rwlock_wrlock(lock) != 0) {
         exit(1);
    }
 }
 
+
+/**
+ * @brief Checks for unlock errors
+ * 
+ * @param lock write/read lock to unlock
+ */
 void my_unlock(pthread_rwlock_t* lock) {
    if (pthread_rwlock_unlock(lock) != 0) {
         exit(1);

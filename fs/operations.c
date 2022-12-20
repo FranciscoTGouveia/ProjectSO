@@ -145,6 +145,16 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
     // opened but it remains created
 }
 
+
+
+
+/**
+ * @brief Soft links a file to a another 
+ * @note If the target file doesn't exist then it will return -1
+ * @param target absolute target path name
+ * @param link_name absolute linked path name
+ * @return 0 if successeful, -1 if it doesn't
+ */
 int tfs_sym_link(char const *target, char const *link_name) {
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
     if (root_dir_inode == NULL) {return -1;}
@@ -167,6 +177,16 @@ int tfs_sym_link(char const *target, char const *link_name) {
     return 0;
 }
 
+
+
+
+/**
+ * @brief Hard links a file to another 
+ * @note If the target file doesn't exist then it will return -1
+ * @param target absolute target path name 
+ * @param link_name absolute linked path name
+ * @return 0 if successeful, -1 if it doesn't
+ */
 int tfs_link(char const *target, char const *link_name) {
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
     if (root_dir_inode == NULL) {return -1;}
@@ -279,6 +299,14 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     return (ssize_t)to_read;
 }
 
+
+
+/**
+ * @brief Unlinks or deletes a file, depending in its hard link counter and in its type 
+ * 
+ * @param target absolute target path name
+ * @return 0 if successeful, -1 if it doesn't
+ */
 int tfs_unlink(char const *target) {
     int inumber = tfs_lookup(target,inode_get(ROOT_DIR_INUM));
     if (inumber == -1) {return -1;}
@@ -293,6 +321,14 @@ int tfs_unlink(char const *target) {
     return 0;
 }
 
+
+/**
+ * @brief Copies a file from another file system to ist's one 
+ * @note Reads from the source file 1024 bytes at a time
+ * @param source_path absolute source path name 
+ * @param dest_path absolute destiny path name
+ * @return 0 if successeful, -1 if it doesn't
+ */
 int tfs_copy_from_external_fs(char const *source_path, char const *dest_path) {
     char buffer[1024];
     FILE* file = fopen(source_path,"r");
