@@ -332,13 +332,13 @@ void inode_delete(int inumber)
  *
  * Returns pointer to inode.
  */
-inode_t *inode_get(int inumber)
-{   pthread_rwlock_rdlock(&lock_inode_table);
+inode_t *inode_get(int inumber){
     ALWAYS_ASSERT(valid_inumber(inumber), "inode_get: invalid inumber");
-
     insert_delay(); // simulate storage access delay to inode
+    pthread_rwlock_rdlock(&lock_inode_table);
+    inode_t* phi = &inode_table[inumber];
     pthread_rwlock_unlock(&lock_inode_table);
-    return &inode_table[inumber];
+    return phi;
 }
 
 pthread_rwlock_t* inode_lock_get(int inumber) {

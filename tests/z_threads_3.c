@@ -19,6 +19,18 @@ char *link_path2 = "/link2";
 char *link_path3 = "/link3";
 char *link_path4 = "/link4";
 
+static void touch_all_memory(void) { __asm volatile(""
+                                                    :
+                                                    :
+                                                    : "memory"); }
+
+static void insert_delay(void)
+{
+    for (int i = 0; i < 50000000; i++)
+    {
+        touch_all_memory();
+    }
+}
 
 void create_new_file(char *path) {
   int fileDescriptor = tfs_open(path, TFS_O_CREAT);
@@ -44,7 +56,8 @@ void write_contents(char *path) {
 
 void *thread_function_1() {
   write_contents(target_path1);
-  sleep(1);
+  insert_delay();
+  insert_delay();
   assert_contents_ok(link_path1);
   assert(tfs_unlink(link_path1)!= -1);
   return 0;
@@ -52,12 +65,12 @@ void *thread_function_1() {
 
 void *thread_function_2() {
   assert(tfs_link(target_path1, link_path1) != -1);
-  sleep(1);
+  insert_delay();
+  insert_delay();
+  insert_delay();
   assert(tfs_open(link_path1, 0b0) == -1);
   return 0;
 }
-
-
 
 void *thread_function_3() {
   for (int i = 0; i < 3; i++) {
@@ -72,9 +85,6 @@ void *thread_function_4() {
   }
   return 0;
 }
-
-
-
 
 int main() {
   // Initiate Técnico Filesystem

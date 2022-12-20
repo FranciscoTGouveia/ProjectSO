@@ -61,9 +61,9 @@ void *thread_function_2() {
 }
 
 void *thread_function_3() {
+  assert(tfs_sym_link(target_path3, link_path3) != -1);
   write_contents(target_path3);
   assert_contents_ok(target_path3);
-  assert(tfs_sym_link(target_path3, link_path3) != -1);
   return 0;
 }
 
