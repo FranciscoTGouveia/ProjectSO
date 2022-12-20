@@ -36,15 +36,19 @@ void write_contents(char const *path) {
     assert(tfs_close(f) != -1);
 }
 
+
 int main() {
   // Initiate Técnico Filesystem
   assert(tfs_init(NULL) != -1);
   
   // Create new file and leave it open
-  assert(tfs_open(target_path1, TFS_O_CREAT) != -1);
+  int fd;
+  assert(fd = (tfs_open(target_path1, TFS_O_CREAT)) != -1);
   
   // Try to delete open file and expect error
-  assert(tfs_unlink(target_path1) == -1);
+  tfs_unlink(target_path1);
+  assert(tfs_write(fd,file_contents,sizeof(file_contents)) == -1);
+
 
   printf("Successful test.\n");
   return 0;
