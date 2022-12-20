@@ -46,7 +46,13 @@ void assert_contents_ok(char *path) {
     assert(memcmp(buffer, file_contents, strlen(buffer)) == 0);
     assert(tfs_close(f) != -1);
 }
-
+void assert_contents_ok1(char *path) {
+    int f = tfs_open(path, 0);
+    assert(f != -1);
+    char buffer[sizeof(file_contents)];
+    assert(tfs_read(f, buffer, strlen(buffer)) % 7 == 0);
+    assert(tfs_close(f) != -1);
+}
 void write_contents(char *path) {
     int f = tfs_open(path, TFS_O_APPEND);
     assert(f != -1);
@@ -73,15 +79,15 @@ void *thread_function_2() {
 }
 
 void *thread_function_3() {
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 128; i++) { // 140 to not exceed the 1024 bytes in the block_size
     write_contents(target_path2);
   }
   return 0;
 }
 
 void *thread_function_4() {
-  for (int i = 0; i < 3; i++) {
-    assert_contents_ok(target_path2);
+  for (int i = 0; i < 128; i++) {
+    assert_contents_ok1(target_path2);
   }
   return 0;
 }

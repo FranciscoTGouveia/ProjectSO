@@ -13,7 +13,8 @@ uint8_t const file_contents[] = "links";
 char const *target_path1 = "/ficheiro1";
 char const *link_path1 = "/link1";
 char const *link_path2 = "/link2";
-
+char const *link_path3 = "/link3";
+char const *link_path4 = "/link4";
 
 void assert_contents_ok(char const *path) {
     int f = tfs_open(path, 0);
@@ -56,7 +57,21 @@ int main() {
   // Create a soft link to that soft link
   assert(tfs_sym_link(link_path1, link_path2) != -1);
   assert_contents_ok(link_path2);
+
+  // Create a soft link to that soft link
+  assert(tfs_sym_link(link_path2, link_path3) != -1);
+  assert_contents_ok(link_path3);
   
+  // Create a soft link to that soft link
+  assert(tfs_sym_link(link_path3, link_path4) != -1);
+  assert_contents_ok(link_path4);
+
+  // Delete a soft link from the middle of the chain
+  assert(tfs_unlink(link_path2) != -1);
+  assert_contents_ok(link_path1);
+  int f1 = tfs_open(link_path4, 0);
+  assert(f1 == -1);
+
   printf("Successful test.\n");
   return 0;
 }
