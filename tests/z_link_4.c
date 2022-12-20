@@ -41,7 +41,7 @@ int main() {
   assert(tfs_init(NULL) != -1);
   
   // Create soft link to non-existent file
-  assert(tfs_sym_link(target_path1, link_path1) != -1);
+  assert(tfs_sym_link(target_path1, link_path1) == -1);
   
   // Create hard link to non-existent file
   assert(tfs_link(target_path2, link_path2) == -1);
@@ -52,7 +52,7 @@ int main() {
   
   // Create the file that the softlink points to
   assert(tfs_open(target_path1, TFS_O_CREAT) != -1);
-  assert(tfs_open(link_path1, 0b0) != -1);
+  assert(tfs_open(link_path1, 0b0) == -1);
   
   // Create the file that the hardlink points to
   assert(tfs_open(target_path2, TFS_O_CREAT) != -1);
