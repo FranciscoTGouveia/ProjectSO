@@ -6,8 +6,8 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
-/* This test evaluates the capacity of TFS to handle multi-threading */
 
+/* This test evaluates the capacity of TFS to handle multi-threading */
 
 uint8_t const file_contents[] = "threads";
 char *target_path1 = "/ficheiro1";
@@ -26,7 +26,7 @@ static void touch_all_memory(void) { __asm volatile(""
 
 static void insert_delay(void)
 {
-    for (int i = 0; i < 50000000; i++)
+    for (int i = 0; i < 500000000; i++)
     {
         touch_all_memory();
     }
@@ -46,6 +46,7 @@ void assert_contents_ok(char *path) {
     assert(memcmp(buffer, file_contents, strlen(buffer)) == 0);
     assert(tfs_close(f) != -1);
 }
+
 void assert_contents_ok1(char *path) {
     int f = tfs_open(path, 0);
     assert(f != -1);
@@ -53,6 +54,7 @@ void assert_contents_ok1(char *path) {
     assert(tfs_read(f, buffer, strlen(buffer)) % 7 == 0);
     assert(tfs_close(f) != -1);
 }
+
 void write_contents(char *path) {
     int f = tfs_open(path, TFS_O_APPEND);
     assert(f != -1);
@@ -61,10 +63,7 @@ void write_contents(char *path) {
 }
 
 void *thread_function_1() {
-  write_contents(target_path1);
   insert_delay();
-  insert_delay();
-  assert_contents_ok(link_path1);
   assert(tfs_unlink(link_path1)!= -1);
   return 0;
 }
@@ -74,19 +73,20 @@ void *thread_function_2() {
   insert_delay();
   insert_delay();
   insert_delay();
+  insert_delay();
   assert(tfs_open(link_path1, 0b0) == -1);
   return 0;
 }
 
 void *thread_function_3() {
-  for (int i = 0; i < 128; i++) { // 140 to not exceed the 1024 bytes in the block_size
+  for (int i = 0; i < 127; i++) { // 127 to not exceed the 1024 bytes in the block_size
     write_contents(target_path2);
   }
   return 0;
 }
 
 void *thread_function_4() {
-  for (int i = 0; i < 128; i++) {
+  for (int i = 0; i < 127; i++) {
     assert_contents_ok1(target_path2);
   }
   return 0;
