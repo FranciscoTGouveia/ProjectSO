@@ -172,6 +172,11 @@ int state_destroy(void)
     for (size_t i = 0; i < MAX_OPEN_FILES; i++) {
         pthread_rwlock_destroy(&lock_file[i]);
     }
+    pthread_rwlock_destroy(&lock_inode_table);
+    pthread_rwlock_destroy(&lock_dir_table);
+    pthread_rwlock_destroy(&lock_data_table);
+    pthread_rwlock_destroy(&lock_file_table);
+
     
     free(lock_file);
     free(lock_inode);

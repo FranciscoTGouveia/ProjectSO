@@ -308,12 +308,14 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
  * @return 0 if successeful, -1 if it doesn't
  */
 int tfs_unlink(char const *target) {
-    int inumber = tfs_lookup(target,inode_get(ROOT_DIR_INUM));
+    inode_t* root = inode_get(ROOT_DIR_INUM);
+    if (root == NULL) {return -1;}
+    int inumber = tfs_lookup(target, root);
     if (inumber == -1) {return -1;}
     pthread_rwlock_t* lock = inode_lock_get(inumber);
     my_w_lock(lock);
-    inode_t* inode = inode_get(inumber), *root = inode_get(ROOT_DIR_INUM);
-    if (inode == NULL || root == NULL) {my_unlock(lock);return -1;} 
+    inode_t* inode = inode_get(inumber);
+    if (inode == NULL) {my_unlock(lock);return -1;} 
     clear_dir_entry(root, target + 1);
     if (inode->i_count > 1) {inode->i_count--;} 
     else {inode_delete(inumber);}
