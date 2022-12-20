@@ -61,5 +61,9 @@ int add_to_open_file_table(int inumber, size_t offset);
 void remove_from_open_file_table(int fhandle);
 open_file_entry_t *get_open_file_entry(int fhandle);
 int get_path_recursive(int inumber);
+void my_r_lock(pthread_rwlock_t* lock);
+void my_w_lock(pthread_rwlock_t* lock);
+void my_unlock(pthread_rwlock_t* lock);
+pthread_rwlock_t *get_open_file_lock(int fhandle);
 
 #endif // STATE_H

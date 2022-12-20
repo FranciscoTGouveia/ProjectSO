@@ -13,13 +13,6 @@ char l1[] = "/l1";
 char l2[] = "/l2";
 char l3[] = "/l3";
 
-void assert_empty_file(char  *path) {
-    int f = tfs_open(path, 0);
-    assert(f != -1);
-
-    assert(tfs_close(f) != -1);
-}
-
 void read_contents(char *path) {
     int f = tfs_open(path, 0);
     assert(f != -1);
@@ -44,13 +37,11 @@ void *th_run01() {
     write_contents(fA);
     assert(tfs_sym_link(fA, l1) != -1);
     assert(tfs_link(fB, l2) != -1);
-    assert_empty_file(fB);
 
     return 0;
 }
 
 void *th_run02() {
-
     write_contents(fB);
     assert(tfs_open(non_existent_file, 0) == -1);
     assert(tfs_link(fB, l3) != -1);
