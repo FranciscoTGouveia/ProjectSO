@@ -50,9 +50,12 @@ void thread_init() {
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
-    if (mkfifo(argv[0], 0777) < 0) {
-        exit(1);
-    }
+    if (mkfifo(GLOBAL_PATH, 0777) < 0) {exit(1);}
+    if (mkfifo(argv[0], 0777) < 0) {exit(1);}
+    int file = open(GLOBAL_PATH, O_WRONLY);
+    if (file == -1) {return -1;}
+    write(file,argv[argc - 1],strlen(GLOBAL_PATH) + 1);
+    close(file);
     pthread_t thread_pool[atoi(argv[1])];
     task_queue = malloc(sizeof(pc_queue_t));
     pcq_create(task_queue, (size_t)atoi(argv[1]));
@@ -65,7 +68,7 @@ int main(int argc, char **argv) {
     if (fd == -1) {return -1;}
     while (1) {
         char buffer[MAX_LINE];
-        read(fd, buffer, MAX_LINE);
+        read(fd, buffer, sizeof(buffer));
         __uint8_t code_pipe = (__uint8_t)strtok(buffer,"|");
         task* newtask;
         newtask = malloc(sizeof(task));

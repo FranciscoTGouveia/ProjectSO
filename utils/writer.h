@@ -2,5 +2,5 @@
 #define __UTILS_WRITER_H__
 #include "pipeflow.h"
 
-char* writer(void* args, __uint8_t code_pipe);
+void writer(void* args, __uint8_t code_pipe, char buffer[MAX_LINE]);
 #endif

@@ -62,7 +62,7 @@ response_manager* reader_response_manager(__uint8_t code_pipe) {
 }
 
 
-list_manager_response* reader_list1(__uint8_t code_pipe) {
+list_manager_response* reader_list_response(__uint8_t code_pipe) {
     list_manager_response* list_response;
     list_response = malloc(sizeof(list_manager_response));
     list_response->code = code_pipe;
@@ -78,7 +78,7 @@ list_manager_response* reader_list1(__uint8_t code_pipe) {
     return list_response;
 }
 
-list_manager_request* reader_list(__uint8_t code_pipe) {
+list_manager_request* reader_list_request(__uint8_t code_pipe) {
     list_manager_request* list_request;
     list_request = malloc(sizeof(list_manager_request));
     list_request->code = code_pipe;
@@ -86,18 +86,35 @@ list_manager_request* reader_list(__uint8_t code_pipe) {
     return list_request;
 }
 
+messages_pipe* reader_message(__uint8_t code_pipe) {
+    messages_pipe* message_request;
+    message_request = malloc(sizeof(messages_pipe));
+    message_request->code = code_pipe;
+    strcpy(message_request->message, strtok(NULL, "|"));
+    return message_request;
+}
+
 
 void *reader(char buffer[MAX_LINE], __uint8_t code_pipe) {
     void* message;
     switch (code_pipe) {
     case 4:
-        reader_response_manager(code_pipe);
+        message = reader_response_manager(code_pipe);
         break;
     case 6:
-        reader_response_manager(code_pipe);
+        message = reader_response_manager(code_pipe);
         break;
     case 7:
-        reader_list(code_pipe);
+        message = reader_list_request(code_pipe);
+        break;
+    case 8:
+        message = reader_list_response(code_pipe);
+        break;
+    case 9:
+        message = reader_message(code_pipe);
+        break;
+    case 10:
+        message = reader_message(code_pipe);
         break;
     default:
         message = reader_request(code_pipe);
