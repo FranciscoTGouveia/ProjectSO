@@ -40,6 +40,7 @@ int main(int argc, char **argv) {
         fprintf(stdout, "%s\n", newmesage->message);
         free(newmesage);
     }
+    close(fd);
     fprintf(stderr, "usage: sub <register_pipe_name> <box_name>\n");
     WARN("unimplemented"); // TODO: implement
     return -1;
