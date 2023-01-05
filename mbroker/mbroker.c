@@ -7,25 +7,149 @@
 #include <string.h>
 #include "../utils/task.h"
 #include "../utils/reader.h"
+#include "../utils/writer.h"
 #include "../utils/pipeflow.h"
+#include "../utils/server_structures.h"
 #include "../producer-consumer/producer-consumer.h"
 #include <unistd.h>
+#include "../fs/operations.h"
+
 
 pc_queue_t *task_queue;
 int active_threads = 0;
 pthread_mutex_t thread_lock;
 pthread_cond_t thread_cond;
+box* server_boxes;
+int size_boxes;
+pthread_mutex_t box_lock;
+thread* thread_pool;
 
-
-void process_sub(request* arg) {
+void process_sub(void* arg, int* index) {
+    pthread_mutex_lock(&box_lock);
+    printf("entramos no sub\n");
+    int tester = 0;
+    for (int i = 0; i < size_boxes; i++) {
+        if (strcmp(((request*)arg)->box_name, server_boxes[i].box_name) == 0) {
+            tester = 1;
+            thread_pool[*index].index = i;
+            server_boxes[i].n_subs += 1;
+            printf("achou a caixa\n");
+            break;
+        } 
+    }
+    if (tester == 0) {exit(1);}
+    while (1) {
+        int fd_tfs = tfs_open(((request*)arg)->box_name, 0);
+        if (fd_tfs == -1) {printf("aconteceu algo a abrir\n");exit(1);}
+        char buffer[1024];
+        ssize_t bytes_tfs = tfs_read(fd_tfs, buffer, sizeof(buffer));
+        printf("bytes no read do sub %ld\n", bytes_tfs);
+        while (bytes_tfs == 0) {
+            pthread_cond_wait(&server_boxes[thread_pool[*index].index].cond_var, &box_lock);
+        }
+        char pipe_message[MAX_LINE] = "";
+        writer(arg,((request*)arg)->code, pipe_message);
+        printf("dps do writer no sub %s\n",pipe_message );
+        int fd = open(((request*)arg)->pipe_name, O_WRONLY);
+        if (fd < 0) {printf("exit2 deu bronca \n");exit(1);}
+        ssize_t bytes = write(fd, pipe_message, sizeof(pipe_message));
+        bytes++;
+        close(fd);
+        printf("nao dei exit no sub\n");
+        tfs_close(fd_tfs);
+    }
     return;
 }
 
-void process_pub(request* arg) {
+void process_pub(void* arg, int* index) {
+    pthread_mutex_lock(&box_lock);
+    int tester = 0;
+    for (int i = 0; i < size_boxes; i++) {
+        if (strcmp(((request*)arg)->box_name, server_boxes[i].box_name) == 0) {
+            tester = 1;
+            thread_pool[*index].index = i;
+            server_boxes[i].n_subs += 1;
+            printf("Achou a caixa no pub\n");
+            break;
+        } 
+    }
+    if (tester == 0) {printf("teste exit0\n");exit(1);}
+    pthread_mutex_unlock(&box_lock);
+    while (1) {
+        int fd = open(((request*)arg)->pipe_name, O_RDONLY);
+        if (fd < 0) {printf("teste exit1\n");exit(1);}
+        char buffer[MAX_LINE];
+        printf("teste1\n");
+        ssize_t bytes = read(fd,buffer,sizeof(buffer));
+        if (bytes > 0) {
+            char *end;
+            uint8_t code_pipe =(uint8_t)strtoul(strtok(buffer, "|"), &end, 10);
+            printf("Isto e o buffer %s\n", buffer);
+            messages_pipe* pipe_message = reader(code_pipe);
+            pthread_cond_signal(&server_boxes[thread_pool[*index].index].cond_var);
+            int fd_tfs = tfs_open(((request*)arg)->box_name, TFS_O_APPEND);
+            if (fd_tfs == -1) {printf("teste exit2\n");exit(1);}
+            ssize_t bytes_tfs = tfs_write(fd_tfs, pipe_message->message,
+             strlen(pipe_message->message));
+            printf("tamanho do q foi escrito pelo pub %ld\n", bytes_tfs);
+            printf("tamanho do q era suposto ter escrito %ld\n", strlen(pipe_message->message));
+            bytes_tfs++;
+            tfs_close(fd_tfs);
+           /* char teste[MAX_LINE];
+            fd_tfs = tfs_open(((request*)arg)->box_name, 0);
+            if (fd_tfs == -1) {printf("teste exit2\n");exit(1);}
+            ssize_t b = tfs_read(fd_tfs, teste, sizeof(teste));
+            printf("tamanho do read %ld \n", b);
+            printf("buffer lido no tfs %s \n", teste);
+            b++;*/
+            free(pipe_message);
+        }
+        close(fd);
+    }
+    printf("sai do loop no pub \n");
     return;   
 }
 
-void process_manager(request* arg) {
+void process_manager(void* arg, int* index) {
+    printf("cheguei manager\n");
+    pthread_mutex_lock(&box_lock);
+    printf("index no manager %d\n", *index);
+    for (int i = 0; i < size_boxes; i++) {
+        if (strcmp(((request *)arg)->box_name, server_boxes[i].box_name) == 0) {
+            printf("exit\n");
+            exit(1);
+        }   
+    }
+    int tester = 0;
+    for (int i = 0; i < size_boxes; i++) {
+        if (server_boxes[i].free == 0 ) {
+            tester = 1;
+            thread_pool[*index].index = i;
+            server_boxes[i].free = 1;
+            strcpy(server_boxes[i].box_name, ((request*)arg)->box_name);
+            break;
+        }
+    }
+    if (tester == 0) {
+        server_boxes = realloc(server_boxes, sizeof(box)*2*(unsigned int)size_boxes);
+        thread_pool[*index].index = size_boxes;
+        server_boxes[size_boxes].free = 1;
+        size_boxes*=2;
+    }
+    printf("box name  dentro do process manager %s\n", ((request*)arg)->box_name);
+    int fd_tfs = tfs_open(((request*)arg)->box_name, TFS_O_CREAT);
+    if (fd_tfs == -1) {
+        printf("deu merda\n");
+        exit(1);}
+    tfs_close(fd_tfs);
+    int fd = open(((request*)arg)->pipe_name, O_WRONLY);
+    if (fd < 0) {exit(1);}
+    char buffer[] = "ola";
+    ssize_t bytes = write(fd, buffer, strlen(buffer));
+    printf("tamanho de mbroker para manager %ld \n", bytes);
+    bytes++;
+    close(fd);
+    pthread_mutex_unlock(&box_lock);
     return;
 }
 
@@ -35,12 +159,17 @@ void process_manager(request* arg) {
 
 
 
-void thread_init() {
+void *thread_init(void*  index) {
     while (1) {
         pthread_mutex_lock(&thread_lock);
+        printf("estou no init\n");
         task* newtask = pcq_dequeue(task_queue);
+        printf("demos pop\n");
         pthread_mutex_unlock(&thread_lock);
-        newtask->function(newtask->request);
+        printf("dps do pop ver o noma da box %s\n", ((request*)newtask->request)->box_name);
+        printf("valor do index no init %d \n",*((int*)index));
+        newtask->function(newtask->request, (int *)index);
+        //newtask need to be freed
         //while (1)
         // cond var.
         // read
@@ -50,29 +179,42 @@ void thread_init() {
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
-    if (mkfifo(GLOBAL_PATH, 0777) < 0) {exit(1);}
-    if (mkfifo(argv[0], 0777) < 0) {exit(1);}
-    int file = open(GLOBAL_PATH, O_WRONLY);
-    if (file == -1) {return -1;}
-    write(file,argv[argc - 1],strlen(GLOBAL_PATH) + 1);
-    close(file);
-    pthread_t thread_pool[atoi(argv[1])];
+    tfs_init(NULL);
+    if (mkfifo(argv[1], 0777) < 0) {exit(1);}
+    server_boxes = malloc((unsigned int)atoi(argv[2])*sizeof(box));
+    size_boxes = atoi(argv[2]);
+    thread_pool = malloc((unsigned int)atoi(argv[2])*sizeof(thread));
     task_queue = malloc(sizeof(pc_queue_t));
-    pcq_create(task_queue, (size_t)atoi(argv[1]));
+    pcq_create(task_queue, (size_t)atoi(argv[2]));
+    printf("fora do create capacidade %ld\n", task_queue->pcq_capacity);
+    if (pthread_mutex_init(&box_lock, NULL) == -1) {return -1;}
     if (pthread_mutex_init(&thread_lock, NULL) == -1) {return -1;}
-    if (pthread_cond_init(&thread_lock, NULL) == -1) {return -1;}
-    for (int i = 0; i < atoi(argv[1]); i++) {
-        pthread_create(thread_pool[i], NULL, thread_init, NULL);
+    if (pthread_cond_init(&thread_cond, NULL) == -1) {return -1;}
+    int index;
+    for (int i = 0; i < atoi(argv[2]); i++) {
+        thread_pool->index = -1;
+        index = i;
+        printf("valor do index %d \n", index);
+        pthread_create(&thread_pool->thread, NULL, thread_init, (void *)&index);
+        server_boxes[i].free = 0;
+        if (pthread_cond_init(&server_boxes[i].cond_var, NULL) == -1) {return -1;}
     }
-    int fd = open(argv[0], O_RDONLY);
-    if (fd == -1) {return -1;}
     while (1) {
+        int fd = open(argv[1], O_RDONLY);
+        if (fd == -1) {return -1;}
         char buffer[MAX_LINE];
-        read(fd, buffer, sizeof(buffer));
-        __uint8_t code_pipe = (__uint8_t)strtok(buffer,"|");
+        ssize_t value = read(fd, buffer, sizeof(buffer));
+        printf("li no mbroker\n");
+        printf("Aqui e o buffer lido %s\n", buffer);
+        value++;
+        char* end;
+        uint8_t code_pipe =(uint8_t)strtoul(strtok(buffer, "|"), &end, 10);
+        printf("%u\n",code_pipe);
+        //uint8_t code_pipe = (uint8_t)strtok(buffer,"|");
         task* newtask;
         newtask = malloc(sizeof(task));
-        newtask->request = reader(buffer,code_pipe);
+        newtask->request = reader(code_pipe);
+        printf("tetatva de ver o box mbroker %s \n", ((request*)newtask->request)->box_name);
         switch (code_pipe) {
             case 1:
                 newtask->function = &process_pub;
@@ -84,7 +226,12 @@ int main(int argc, char **argv) {
                 newtask->function = &process_manager;
                 break;
         }
+        printf("damos push aqui\n");
         if (pcq_enqueue(task_queue, newtask) == -1) {return -1;}
+        close(fd);
+    }
+    for (int i = 0;i < atoi(argv[2]); i++) {
+        pthread_join(thread_pool[i].thread, NULL);
     }
     // handle signal to end the program and then join the threads
     fprintf(stderr, "usage: mbroker <pipename>\n");

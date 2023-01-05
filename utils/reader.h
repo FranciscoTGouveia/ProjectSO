@@ -17,9 +17,9 @@ typedef struct {
 
 
 
-manager_request_sring* reader_manager(char* buffer);
-command_helper* reader_sub_pub(char* buffer);
-void* reader(char buffer[MAX_LINE], __uint8_t code_pipe);
+// manager_request_sring* reader_manager(char* buffer);
+//command_helper* reader_sub_pub(char* buffer);
+void* reader(uint8_t code_pipe);
 
 
 #endif  

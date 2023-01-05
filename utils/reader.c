@@ -2,9 +2,10 @@
 #include <string.h>
 #include "reader.h"
 #include <stdlib.h>
+#include <stdint.h>
 
 
-manager_request_sring* reader_manager(char* buffer) {
+/*manager_request_sring* reader_manager(char* buffer) {
     char *register_pipe, *pipe, *operation, *box;
     register_pipe = strtok(NULL, "|");
     pipe= strtok(NULL, "|");
@@ -24,10 +25,10 @@ manager_request_sring* reader_manager(char* buffer) {
     manager_request_sring* manager_p = &manager_h;
     manager_p->string = helper_p;
     return manager_p;
-}
+}*/
 
 
-command_helper* reader_sub_pub(char* buffer) {
+/*command_helper* reader_sub_pub(char* buffer) {
     char* register_pipe, *pipe, *box;
     register_pipe = strtok(NULL, "|");
     pipe = strtok(NULL, "|");
@@ -39,9 +40,9 @@ command_helper* reader_sub_pub(char* buffer) {
     };
     command_helper* helper_p = &helper;
     return helper_p;
-}
+}*/
 
-request* reader_request(__uint8_t code_pipe) {
+request* reader_request(uint8_t code_pipe) {
     request* request_pipe;
     request_pipe = malloc(sizeof(request));
     request_pipe->code = code_pipe;
@@ -50,25 +51,27 @@ request* reader_request(__uint8_t code_pipe) {
     return request_pipe;
 }
 
-response_manager* reader_response_manager(__uint8_t code_pipe) {
+response_manager* reader_response_manager(uint8_t code_pipe) {
     response_manager* response;
     response = malloc(sizeof(response_manager));
     response->code = code_pipe;
     char* end;
-    response->return_code = strtoul(strtok(NULL,"|"), &end, 10);
+    response->return_code = (int)strtoul(strtok(NULL,"|"), &end, 10);
     if (*end != '\0') {return NULL;}
     strcpy(response->error_message,strtok(NULL,"|"));
     return response;
 }
 
 
-list_manager_response* reader_list_response(__uint8_t code_pipe) {
+list_manager_response* reader_list_response(uint8_t code_pipe) {
     list_manager_response* list_response;
     list_response = malloc(sizeof(list_manager_response));
     list_response->code = code_pipe;
-    list_response->last = (__uint8_t) strtok(NULL, "|");
-    strcpy(list_response->box_name, strtok(NULL,"|"));
     char* end;
+    list_response->last =(uint8_t) strtoul(strtok(NULL, "|"), &end, 10);
+    if (*end != '\0') {return NULL;}
+    //list_response->last = (__uint8_t) strtok(NULL, "|");
+    strcpy(list_response->box_name, strtok(NULL,"|"));
     list_response->box_size = strtoul(strtok(NULL,"|"), &end, 10);
     if (*end != '\0') {return NULL;}
     list_response->n_pubs = strtoul(strtok(NULL,"|"), &end, 10);
@@ -78,7 +81,7 @@ list_manager_response* reader_list_response(__uint8_t code_pipe) {
     return list_response;
 }
 
-list_manager_request* reader_list_request(__uint8_t code_pipe) {
+list_manager_request* reader_list_request(uint8_t code_pipe) {
     list_manager_request* list_request;
     list_request = malloc(sizeof(list_manager_request));
     list_request->code = code_pipe;
@@ -86,7 +89,7 @@ list_manager_request* reader_list_request(__uint8_t code_pipe) {
     return list_request;
 }
 
-messages_pipe* reader_message(__uint8_t code_pipe) {
+messages_pipe* reader_message(uint8_t code_pipe) {
     messages_pipe* message_request;
     message_request = malloc(sizeof(messages_pipe));
     message_request->code = code_pipe;
@@ -95,7 +98,7 @@ messages_pipe* reader_message(__uint8_t code_pipe) {
 }
 
 
-void *reader(char buffer[MAX_LINE], __uint8_t code_pipe) {
+void *reader(uint8_t code_pipe) {
     void* message;
     switch (code_pipe) {
     case 4:

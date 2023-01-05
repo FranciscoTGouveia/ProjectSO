@@ -77,9 +77,10 @@ static int tfs_lookup(char const *name, inode_t const *root_inode) {
 int tfs_open(char const *name, tfs_file_mode_t mode) {
     // Checks if the path name is valid
     if (!valid_pathname(name)) {
+        printf("nao e valido \n");
         return -1;
     }
-    
+    printf("o nome e valido\n");
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
     ALWAYS_ASSERT(root_dir_inode != NULL,
                   "tfs_open: root dir inode must exist");
@@ -273,9 +274,12 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
 
     // From the open file table entry, we get the inode
     pthread_rwlock_t* lock = inode_lock_get(file->of_inumber);
+    printf("antes do 1 lock read \n");
     my_r_lock(lock);
+    printf("dps do 1 lock read\n");
     pthread_rwlock_t* lock_f = get_open_file_lock(fhandle);
     my_r_lock(lock_f);
+    printf("dps do lock 2 read \n");
     inode_t const *inode = inode_get(file->of_inumber);
     ALWAYS_ASSERT(inode != NULL, "tfs_read: inode of open file deleted");
     // Determine how many bytes to read

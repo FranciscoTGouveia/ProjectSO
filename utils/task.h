@@ -2,7 +2,7 @@
 #define __TASK_H__
 
 typedef struct {
-    void (*function)(void*);
+    void (*function)(void*, int*);
     void* request; //have to free
 } task;
 

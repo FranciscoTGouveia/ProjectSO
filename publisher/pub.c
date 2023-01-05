@@ -11,35 +11,32 @@
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
-    request newrequest = {
-        .code = 1,
-        .pipe_name = argv[argc - 1],
-        .box_name = argv[argc]
-    };
-    int file = open(GLOBAL_PATH, O_RDONLY);
-    if (file < 0) {return -1;}
-    char fifo_path[MAX_PIPE_NAME];
-    read(file, fifo_path, sizeof(fifo_path));
-    close(file);
+    request newrequest;
+    newrequest.code = 1;
+    strcpy(newrequest.pipe_name, argv[2]);
+    strcpy(newrequest.box_name, argv[3]);
     char buffer[MAX_LINE] = "";
     writer(&newrequest, newrequest.code, buffer);
-    if (mkfifo(argv[argc-1], 0777) < 0) {
+    if (mkfifo(argv[2], 0777) < 0) {
         exit(1);
     }
-    int fd = open(fifo_path, O_WRONLY);
+    int fd = open(argv[1], O_WRONLY);
     if (fd < 0) {return -1;}
-    write(fd, buffer, sizeof(buffer));
+    ssize_t value = write(fd, buffer, strlen(buffer));
+    value++;
     close(fd);
-    fd = open(argv[argc-1], O_WRONLY);
+    fd = open(argv[2], O_WRONLY);
     if (fd < 0) {exit(1);}
     char message[MAX_MESSAGE];
     while (fgets(message, sizeof(message), stdin) != NULL) {
+        message[strlen(message) - 1] = '\0';
         strcpy(buffer, "");
         messages_pipe newmessage;
         newmessage.code = 10;
         strcpy(newmessage.message, message);
         writer(&newmessage, newmessage.code, buffer);
-        write(fd, buffer, sizeof(buffer));
+        value = write(fd, buffer, strlen(buffer));
+        value++;
     }
     close(fd);
     fprintf(stderr, "usage: pub <register_pipe_name> <box_name>\n");

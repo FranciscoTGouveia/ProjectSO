@@ -13,30 +13,27 @@
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
-    int file = open(GLOBAL_PATH, O_RDONLY);
-    if (file < 0) {exit(1);}
-    char global_fifo[MAX_PIPE_NAME];
-    read(file, global_fifo, sizeof(global_fifo));
-    close(file);
-    request newrequest = {
-        .code = 2,
-        .pipe_name = argv[argc - 1],
-        .box_name = argv[argc]
-    };
+    request newrequest;
+    newrequest.code = 2;
+    strcpy(newrequest.pipe_name, argv[2]);
+    strcpy(newrequest.box_name, argv[3]);
     char buffer[MAX_LINE] = "";
     writer(&newrequest, newrequest.code, buffer);
-    int fd = open(global_fifo, O_WRONLY);
-    write(fd, buffer, sizeof(buffer));
+    int fd = open(argv[1], O_WRONLY);
+    ssize_t value = write(fd, buffer, strlen(buffer));
+    value++;
     close(fd);
-    if (mkfifo(argv[argc-1], 0777) < 0) {
+    if (mkfifo(argv[2], 0777) < 0) {
         exit(1);
     }
-    fd = open(argv[argc-1], O_RDONLY);
+    fd = open(argv[2], O_RDONLY);
     if (fd < 0) {exit(1);}
     while (1) {
         char message[MAX_LINE];
-        read(fd, message, sizeof(message));
-        messages_pipe* newmesage = reader(message, 10);
+        value = read(fd, message, sizeof(message));
+        value++;
+        strtok(message, "|");
+        messages_pipe* newmesage = reader(10);
         fprintf(stdout, "%s\n", newmesage->message);
         free(newmesage);
     }

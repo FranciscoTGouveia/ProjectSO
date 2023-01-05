@@ -3,13 +3,14 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 
 
 void writer_request(request* args, char buffer[MAX_LINE]) {
     char pipe[] = "|";
-    char code_str[3];
-    sprintf(code_str, "%d", args->code);
+    char code_str[100];
+    sprintf(code_str, "%u", args->code);
     strcat(buffer, code_str);
     strcat(buffer, pipe);
     strcat(buffer, args->pipe_name);
@@ -19,9 +20,9 @@ void writer_request(request* args, char buffer[MAX_LINE]) {
 
 void writer_response_manager(response_manager* args, char buffer[MAX_LINE]) {
     char pipe[] = "|";
-    char code_str[3];
-    char return_str[2];
-    sprintf(code_str, "%d", args->code);
+    char code_str[100];
+    char return_str[100];
+    sprintf(code_str, "%u", args->code);
     sprintf(return_str, "%d", args->return_code);
     strcat(buffer, code_str);
     strcat(buffer, pipe);
@@ -32,8 +33,8 @@ void writer_response_manager(response_manager* args, char buffer[MAX_LINE]) {
 
 void writer_list_request(list_manager_request* args, char buffer[MAX_LINE]) {
     char pipe[] = "|";
-    char code_str[3];
-    sprintf(code_str, "%d", args->code);
+    char code_str[100];
+    sprintf(code_str, "%u", args->code);
     strcat(buffer, code_str);
     strcat(buffer, pipe);
     strcat(buffer, args->pipe_name);
@@ -41,12 +42,14 @@ void writer_list_request(list_manager_request* args, char buffer[MAX_LINE]) {
 
 void writer_list_response(list_manager_response* args, char buffer[MAX_LINE]) {
     char pipe[] = "|";
-    int len_box = (int)(log10(args->box_size) + 1);
-    int len_sub = (int)(log10(args->n_subs) + 1);
-    char code_str[3], last_str[2], size_str[len_box]; 
+    //int len_box = (int)(log10((double)args->box_size) + 1);
+    //int len_sub = (int)(log10((double)args->n_subs) + 1);
+    int len_box = 1000;
+    int len_sub = 1000;
+    char code_str[100], last_str[100], size_str[len_box]; 
     char pub_str[2], sub_str[len_sub];
-    sprintf(code_str, "%d", args->code);
-    sprintf(last_str, "%d", args->last);
+    sprintf(code_str, "%u", args->code);
+    sprintf(last_str, "%u", args->last);
     sprintf(size_str, "%lu", args->box_size);
     sprintf(pub_str, "%lu", args->n_pubs);
     sprintf(sub_str, "%lu", args->n_subs);
@@ -65,14 +68,16 @@ void writer_list_response(list_manager_response* args, char buffer[MAX_LINE]) {
 
 void writer_message(messages_pipe* args, char buffer[MAX_LINE]) {
     char pipe[] = "|";
-    char code_str[3];
-    sprintf(code_str, "%d", args->code);
+    char code_str[100];
+    sprintf(code_str, "%u", args->code);
     strcat(buffer, code_str);
     strcat(buffer,pipe);
     strcat(buffer,args->message);
 }
 
-void writer(void* args, __uint8_t code_pipe, char buffer[MAX_LINE]) {
+void writer(void* args, uint8_t code_pipe, char buffer[MAX_LINE]) {
+    double c = 10;
+    c = log(c);
     switch (code_pipe) {
         case 4:
             writer_response_manager(args, buffer);
@@ -97,10 +102,4 @@ void writer(void* args, __uint8_t code_pipe, char buffer[MAX_LINE]) {
             break;
     }
 }
-
-
-
-
-
-
 
