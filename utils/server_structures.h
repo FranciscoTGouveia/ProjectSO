@@ -12,6 +12,7 @@ typedef struct {
 typedef struct {
     char box_name[MAX_BOX_NAME];
     pthread_cond_t cond_var;
+    pthread_mutex_t box_lock;
     int n_pub;
     int n_subs;
     int free; //0 if is free 1 if not

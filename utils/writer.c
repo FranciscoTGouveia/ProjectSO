@@ -76,8 +76,6 @@ void writer_message(messages_pipe* args, char buffer[MAX_LINE]) {
 }
 
 void writer(void* args, uint8_t code_pipe, char buffer[MAX_LINE]) {
-    double c = 10;
-    c = log(c);
     switch (code_pipe) {
         case 4:
             writer_response_manager(args, buffer);

@@ -27,15 +27,21 @@ int main(int argc, char **argv) {
     close(fd);
     fd = open(argv[2], O_WRONLY);
     if (fd < 0) {exit(1);}
-    char message[MAX_MESSAGE];
-    while (fgets(message, sizeof(message), stdin) != NULL) {
+    while (1) {
+        char message[MAX_MESSAGE];
+        if (fgets(message, sizeof(message), stdin) == NULL) {
+            close(fd);
+            exit(1);
+        }
+        printf("as mensagens dentro do pub %s \n", message);
         message[strlen(message) - 1] = '\0';
         strcpy(buffer, "");
         messages_pipe newmessage;
         newmessage.code = 10;
         strcpy(newmessage.message, message);
         writer(&newmessage, newmessage.code, buffer);
-        value = write(fd, buffer, strlen(buffer));
+        printf("mensagem serializada no pub %s\n",buffer);
+        value = write(fd, buffer, sizeof(buffer));
         value++;
     }
     close(fd);

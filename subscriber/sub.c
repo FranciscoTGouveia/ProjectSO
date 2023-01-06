@@ -26,18 +26,19 @@ int main(int argc, char **argv) {
     if (mkfifo(argv[2], 0777) < 0) {
         exit(1);
     }
-    fd = open(argv[2], O_RDONLY);
-    if (fd < 0) {exit(1);}
     while (1) {
+        fd = open(argv[2], O_RDONLY);
+        if (fd < 0) {exit(1);}
         char message[MAX_LINE];
         value = read(fd, message, sizeof(message));
+        printf("mensagem do pipe %s\n", message);
         value++;
         strtok(message, "|");
         messages_pipe* newmesage = reader(10);
         fprintf(stdout, "%s\n", newmesage->message);
         free(newmesage);
+        close(fd);
     }
-    close(fd);
     fprintf(stderr, "usage: sub <register_pipe_name> <box_name>\n");
     WARN("unimplemented"); // TODO: implement
     return -1;
