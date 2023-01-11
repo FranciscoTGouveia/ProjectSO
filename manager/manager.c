@@ -10,12 +10,12 @@
 #include <string.h>
 #define CREATE "create"
 #define REMOVE "remove"
-static void print_usage() {
+/*static void print_usage() {
     fprintf(stderr, "usage: \n"
                     "   manager <register_pipe_name> create <box_name>\n"
                     "   manager <register_pipe_name> remove <box_name>\n"
                     "   manager <register_pipe_name> list\n");
-}
+}*/
 
 
 void manager_request(void* newrequest,uint8_t code_pipe ,char* register_pipe) {
@@ -23,7 +23,7 @@ void manager_request(void* newrequest,uint8_t code_pipe ,char* register_pipe) {
     writer(newrequest, code_pipe, buffer);
     printf("buffer a ser enviado no pipe pelo manager %s\n", buffer);
     int fd = open(register_pipe, O_WRONLY);
-    if (fd < 0) {return -1;}
+    if (fd < 0) {exit(1);}
     printf("Tamanho do buffer do manager %ld\n", strlen(buffer));
     ssize_t value = write(fd, buffer, strlen(buffer));
     printf("Tamanho do q foi escrito noo manager %ld\n", value);
@@ -39,6 +39,8 @@ void manager_create_remove(request* newrequest, char* pipe, char* register_pipe)
     if (fd < 0) {exit(1);}
     char message[MAX_LINE];
     ssize_t value = read(fd, message, sizeof(message));
+    printf("dps do reader %s \n", message);
+    value++;
     char* end;
     uint8_t code_pipe =(uint8_t)strtoul(strtok(message, "|"), &end, 10);
     response_manager* response = reader(code_pipe);
@@ -54,14 +56,16 @@ void manager_create_remove(request* newrequest, char* pipe, char* register_pipe)
 void manager_list(list_manager_request* newrequest, char* pipe, char*register_pipe) {
     manager_request(newrequest, newrequest->code, register_pipe);
     if (mkfifo(pipe, 0777) < 0) {exit(1);}
-    int size = 100;
+    long unsigned int size = 100;
     int counter = 0;
     list_manager_response** list_of_boxes = malloc(size*sizeof(list_manager_response*));
     while (1) {
         int fd = open(pipe, O_RDONLY);
         if (fd < 0) {exit(1);}
         char message[MAX_LINE];
+        memset(message, 0 ,MAX_LINE);
         ssize_t value = read(fd, message, sizeof(message));
+        value++;
         char* end;
         uint8_t code_pipe =(uint8_t)strtoul(strtok(message, "|"), &end, 10);
         list_of_boxes[counter] = reader(code_pipe);
@@ -77,7 +81,7 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
         counter++;
         if (counter == size) {
             size *= 2;
-            realloc(list_of_boxes, size*sizeof(list_manager_response*));
+            list_of_boxes = realloc(list_of_boxes, size*sizeof(list_manager_response*));
         }
         close(fd);
     }

@@ -76,9 +76,12 @@ void process_pub(void* arg, int* index) {
     int tester = 0;
     for (int i = 0; i < size_boxes; i++) {
         if (strcmp(((request*)arg)->box_name, server_boxes[i].box_name) == 0) {
+            if (server_boxes[i].n_pub == 1) {
+                return;
+            }
             tester = 1;
             thread_pool[*index].index = i;
-            server_boxes[i].n_subs += 1;
+            server_boxes[i].n_pub = 1;
             printf("Achou a caixa no pub\n");
             break;
         } 
@@ -123,16 +126,105 @@ void process_pub(void* arg, int* index) {
         close(fd);
     }
     printf("sai do loop no pub \n");
+    server_boxes[thread_pool[*index].index].n_pub = 0;
     return;   
 }
 
-void process_manager(void* arg, int* index) {
+
+void process_manager_list(void* arg, int* index) {
+    (void)index;
+    pthread_mutex_lock(&box_size_lock);
+    int counter = 0;
+    list_manager_response boxes_to_send[size_boxes];
+    for (int i = 0; i < size_boxes; i++) {
+        if (server_boxes[i].free == 1) {
+            boxes_to_send[counter].code = 8;
+            boxes_to_send[counter].last = 0;
+            strcpy(boxes_to_send[counter].box_name, server_boxes[i].box_name);
+            boxes_to_send[counter].box_size = 0; // need to calculate the size 
+            boxes_to_send[counter].n_pubs = (unsigned int)server_boxes[i].n_pub;
+            boxes_to_send[counter].n_subs = (unsigned int)server_boxes[i].n_subs;
+            counter++;
+        }
+    }
+    pthread_mutex_unlock(&box_size_lock);
+    boxes_to_send[counter].last = 1;
+    if (counter == 0) {
+        memset(boxes_to_send[counter].box_name, 0, MAX_BOX_NAME);
+        counter++;
+    }
+    int fd = open(((list_manager_request*)arg)->pipe_name, O_WRONLY);
+    if (fd < 0) {
+        return;
+    }
+    for (int i = 0; i < counter; i++) {
+        char buffer[MAX_LINE] = "";
+        writer(&boxes_to_send[i], boxes_to_send[i].code, buffer);
+        ssize_t value = write(fd, buffer, strlen(buffer));
+        value++;
+    }
+    close(fd);
+    
+}
+
+
+
+
+void process_manager_remove(void* arg, int* index) {
+    pthread_mutex_lock(&box_size_lock);
+    int tester = 0;
+    for (int i = 0; i < size_boxes; i++) {
+        if (strcmp(((request*)arg)->box_name, server_boxes[i].box_name) == 0) {
+            if (server_boxes[i].free == 0) {
+                pthread_mutex_unlock(&box_size_lock);
+                return;
+            }
+            thread_pool[*index].index = i;
+            tester = 1;
+            break;
+        }
+    }
+    if (tester == 0) {tester = -1;}
+    tester = 0;
+    response_manager response;
+    response.code = 6;
+    tester = tfs_unlink(((request*)arg)->box_name);
+    if (tester == -1) {
+        response.return_code = -1;
+        strcpy(response.error_message, "Ocorreu um erro ao eliminar a caixa");
+    } else {
+        response.return_code = 0;
+        memset(response.error_message, 0, 1024);
+        server_boxes[thread_pool[*index].index].free = 0;
+        server_boxes[thread_pool[*index].index].n_pub = 0;
+        server_boxes[thread_pool[*index].index].n_subs = 0;
+        memset(server_boxes[thread_pool[*index].index].box_name, 0, MAX_BOX_NAME);
+    }
+    char buffer[MAX_LINE] = "";
+    writer(&response, response.code, buffer);
+    printf("writer do manager remove %s %ld\n", buffer, strlen(buffer));
+    int fd = open(((request*)arg)->pipe_name, O_WRONLY);
+    if (fd < 0) {
+        pthread_mutex_unlock(&box_size_lock);
+        return;
+    }
+    ssize_t value = write(fd,buffer, strlen(buffer));
+    printf("quanto foi o meu value %ld\n", value);
+    value++;
+    pthread_mutex_unlock(&box_size_lock);
+    close(fd);
+}
+
+
+
+void process_manager_create(void* arg, int* index) {
     printf("cheguei manager\n");
     pthread_mutex_lock(&box_size_lock);
     printf("index no manager %d\n", *index);
     for (int i = 0; i < size_boxes; i++) {
         if (strcmp(((request *)arg)->box_name, server_boxes[i].box_name) == 0) {
             printf("exit\n");
+            pthread_mutex_unlock(&box_size_lock);
             exit(1);
         }   
     }
@@ -152,23 +244,36 @@ void process_manager(void* arg, int* index) {
         server_boxes[size_boxes].free = 1;
         size_boxes*=2;
     }
-    pthread_mutex_unlock(&box_size_lock);
+    tester = 0;
     printf("box name  dentro do process manager %s\n", ((request*)arg)->box_name);
     int fd_tfs = tfs_open(((request*)arg)->box_name, TFS_O_CREAT);
     if (fd_tfs == -1) {
         printf("deu merda\n");
-        exit(1);}
+        tester = 1;
+    }
     tfs_close(fd_tfs);
     int fd = open(((request*)arg)->pipe_name, O_WRONLY);
     if (fd < 0) {exit(1);}
-    char buffer[] = "ola";
+    response_manager response;
+    response.code = 4;
+    if (tester == 1) {
+        server_boxes[thread_pool[*index].index].free = 0; //if you cant create the box it really isnt free
+        memset(server_boxes[thread_pool[*index].index].box_name, 0, MAX_BOX_NAME);
+        response.return_code = -1;
+        strcpy(response.error_message, "Ocorreu um erro na criação da caixa");
+    } else {
+        response.return_code = 0;
+        memset(response.error_message, 0, 1024);
+    }
+    pthread_mutex_unlock(&box_size_lock);
+    char buffer[MAX_LINE] = "";
+    writer(&response, response.code, buffer);
     ssize_t bytes = write(fd, buffer, strlen(buffer));
     printf("tamanho de mbroker para manager %ld \n", bytes);
     bytes++;
     close(fd);
     return;
 }
-
 
 
 
@@ -237,8 +342,16 @@ int main(int argc, char **argv) {
             case 2:
                 newtask->function = &process_sub;
                 break;
+            case 3:
+                newtask->function = &process_manager_create;
+                break;
+            case 5:
+                newtask->function = &process_manager_remove;
+                break; 
+            case 7:
+                newtask->function = &process_manager_list;
+                break;
             default:
-                newtask->function = &process_manager;
                 break;
         }
         printf("damos push aqui\n");
