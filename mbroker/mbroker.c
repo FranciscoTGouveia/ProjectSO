@@ -63,6 +63,7 @@ void process_sub(void* arg, int* index) {
         if (fd < 0) {printf("exit2 deu bronca \n");exit(1);}
         ssize_t bytes = write(fd, pipe_message, sizeof(pipe_message));
         bytes++;
+        memset(teste, 0, sizeof(teste));
         close(fd);
         printf("nao dei exit no sub\n");
     }
@@ -176,11 +177,10 @@ void process_manager(void* arg, int* index) {
 
 void *thread_init(void*  index) {
     while (1) {
-        pthread_mutex_lock(&thread_lock);
+        printf("o valor do index antes de qualquer cena init %d \n", *(int*)index);
         printf("estou no init\n");
         task* newtask = pcq_dequeue(task_queue);
         printf("demos pop\n");
-        pthread_mutex_unlock(&thread_lock);
         printf("dps do pop ver o noma da box %s\n", ((request*)newtask->request)->box_name);
         printf("valor do index no init %d \n",*((int*)index));
         newtask->function(newtask->request, (int *)index);
@@ -219,10 +219,9 @@ int main(int argc, char **argv) {
         int fd = open(argv[1], O_RDONLY);
         if (fd == -1) {return -1;}
         char buffer[MAX_LINE];
-        ssize_t value = read(fd, buffer, sizeof(buffer));
+        while (read(fd, buffer, sizeof(buffer)) == 0) {}
         printf("li no mbroker\n");
         printf("Aqui e o buffer lido %s\n", buffer);
-        value++;
         char* end;
         uint8_t code_pipe =(uint8_t)strtoul(strtok(buffer, "|"), &end, 10);
         printf("%u\n",code_pipe);
@@ -244,6 +243,7 @@ int main(int argc, char **argv) {
         }
         printf("damos push aqui\n");
         if (pcq_enqueue(task_queue, newtask) == -1) {return -1;}
+        memset(buffer, 0, sizeof(buffer));
         close(fd);
     }
     for (int i = 0;i < atoi(argv[2]); i++) {

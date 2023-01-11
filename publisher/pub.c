@@ -34,7 +34,9 @@ int main(int argc, char **argv) {
             exit(1);
         }
         printf("as mensagens dentro do pub %s \n", message);
-        message[strlen(message) - 1] = '\0';
+        if (message[strlen(message) -1] == '\n') {
+            message[strlen(message) - 1] = '\0';
+        }
         strcpy(buffer, "");
         messages_pipe newmessage;
         newmessage.code = 10;

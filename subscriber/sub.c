@@ -19,8 +19,10 @@ int main(int argc, char **argv) {
     strcpy(newrequest.box_name, argv[3]);
     char buffer[MAX_LINE] = "";
     writer(&newrequest, newrequest.code, buffer);
+    printf("Mensagem a mandar no pipe %s tamanho %ld \n", buffer, strlen(buffer));
     int fd = open(argv[1], O_WRONLY);
     ssize_t value = write(fd, buffer, strlen(buffer));
+    printf("Tamanho que foi escrito %ld \n", value);
     value++;
     close(fd);
     if (mkfifo(argv[2], 0777) < 0) {
