@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
         int fd = open(argv[1], O_RDONLY);
         if (fd == -1) {return -1;}
         char buffer[MAX_LINE];
-        while (read(fd, buffer, sizeof(buffer)) == 0) {}
+        while (read(fd, buffer, sizeof(buffer)) == 0) {} //MELHOR TIRAR O READ E BLOQUEANTE
         printf("li no mbroker\n");
         printf("Aqui e o buffer lido %s\n", buffer);
         char* end;
