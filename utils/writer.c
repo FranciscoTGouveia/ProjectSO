@@ -44,6 +44,7 @@ void writer_list_response(list_manager_response* args, char buffer[MAX_LINE]) {
     char pipe[] = "|";
     //int len_box = (int)(log10((double)args->box_size) + 1);
     //int len_sub = (int)(log10((double)args->n_subs) + 1);
+    memset(buffer, 0, MAX_LINE);
     int len_box = 1000;
     int len_sub = 1000;
     char code_str[100], last_str[100], size_str[len_box]; 

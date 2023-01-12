@@ -133,6 +133,7 @@ void process_pub(void* arg, int* index) {
 
 void process_manager_list(void* arg, int* index) {
     (void)index;
+    printf("entrou no list\n");
     pthread_mutex_lock(&box_size_lock);
     int counter = 0;
     list_manager_response boxes_to_send[size_boxes];
@@ -150,23 +151,30 @@ void process_manager_list(void* arg, int* index) {
     pthread_mutex_unlock(&box_size_lock);
     boxes_to_send[counter].last = 1;
     if (counter == 0) {
+        boxes_to_send[counter].code = 8;
+            boxes_to_send[counter].box_size = 0; // need to calculate the size 
+            boxes_to_send[counter].n_pubs = 0; 
+            boxes_to_send[counter].n_subs = 0; 
         memset(boxes_to_send[counter].box_name, 0, MAX_BOX_NAME);
         counter++;
     }
+    printf("ANTES DO OPEN \n");
     int fd = open(((list_manager_request*)arg)->pipe_name, O_WRONLY);
     if (fd < 0) {
         return;
     }
+    printf("valor de counter %d \n", counter);
     for (int i = 0; i < counter; i++) {
+        printf("dentro do loop %s \n", boxes_to_send[i].box_name);
         char buffer[MAX_LINE] = "";
         writer(&boxes_to_send[i], boxes_to_send[i].code, buffer);
+        printf("valor do writer %s\n",buffer);
         ssize_t value = write(fd, buffer, strlen(buffer));
         value++;
     }
     close(fd);
     
 }
-
 
 
 

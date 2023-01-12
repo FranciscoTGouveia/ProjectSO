@@ -59,18 +59,24 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
     long unsigned int size = 100;
     int counter = 0;
     list_manager_response** list_of_boxes = malloc(size*sizeof(list_manager_response*));
+    int fd = open(pipe, O_RDONLY);
+    if (fd < 0) {exit(1);}
     while (1) {
-        int fd = open(pipe, O_RDONLY);
-        if (fd < 0) {exit(1);}
         char message[MAX_LINE];
         memset(message, 0 ,MAX_LINE);
+        printf("dps do memset\n");
         ssize_t value = read(fd, message, sizeof(message));
+        printf("esta e a message %s \n", message);
         value++;
         char* end;
+        printf("antes do strtok \n");
         uint8_t code_pipe =(uint8_t)strtoul(strtok(message, "|"), &end, 10);
+        printf("dps do strtok \n");
         list_of_boxes[counter] = reader(code_pipe);
+        printf("dps do reader \n");
         if (list_of_boxes[counter]->last == 1) {
-            if (list_of_boxes[counter]->box_name[0] == '\0') {
+            printf("antes do box_name\n");
+            if (list_of_boxes[counter]->box_name[0] == '0') {
                 fprintf(stdout, "NO BOXES FOUND\n");
                 free(list_of_boxes[counter]);
                 free(list_of_boxes);
@@ -83,8 +89,8 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
             size *= 2;
             list_of_boxes = realloc(list_of_boxes, size*sizeof(list_manager_response*));
         }
-        close(fd);
     }
+        close(fd);
     //here we sort the array
     for (int i = 0; i <= counter; i++) {
         fprintf(stdout, "%s %zu %zu %zu\n", list_of_boxes[i]->box_name, 

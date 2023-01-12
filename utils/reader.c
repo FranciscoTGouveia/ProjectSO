@@ -76,8 +76,13 @@ list_manager_response* reader_list_response(uint8_t code_pipe) {
     if (*end != '\0') {return NULL;}
     list_response->n_pubs = strtoul(strtok(NULL,"|"), &end, 10);
     if (*end != '\0') {return NULL;}
-    list_response->n_subs = strtoul(strtok(NULL,"|"), &end, 10);
-    if (*end != '\0') {return NULL;}
+    char* teste = strtok(NULL,"|");
+    if (teste == NULL) {
+        list_response->n_subs = 0;
+    } else {
+        list_response->n_subs = strtoul(teste, &end, 10);
+        if (*end != '\0') {return NULL;}
+    }
     return list_response;
 }
 
