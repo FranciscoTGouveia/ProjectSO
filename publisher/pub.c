@@ -17,7 +17,8 @@ int main(int argc, char **argv) {
     strcpy(newrequest.box_name, argv[3]);
     char buffer[MAX_LINE] = "";
     writer(&newrequest, newrequest.code, buffer);
-    if (mkfifo(argv[2], 0777) < 0) {
+    int fd_fifo;
+    if ((fd_fifo = mkfifo(argv[2], 0777)) < 0) {
         exit(1);
     }
     int fd = open(argv[1], O_WRONLY);
@@ -31,7 +32,8 @@ int main(int argc, char **argv) {
         char message[MAX_MESSAGE];
         if (fgets(message, sizeof(message), stdin) == NULL) {
             close(fd);
-            exit(1);
+            unlink(argv[2]);
+            return 0;
         }
         printf("as mensagens dentro do pub %s \n", message);
         if (message[strlen(message) -1] == '\n') {
@@ -47,6 +49,7 @@ int main(int argc, char **argv) {
         value++;
     }
     close(fd);
+    unlink(argv[2]);
     fprintf(stderr, "usage: pub <register_pipe_name> <box_name>\n");
     WARN("unimplemented"); // TODO: implement
     return -1;

@@ -18,6 +18,19 @@
 }*/
 
 
+void sort_boxes(list_manager_response** list_of_boxes, int counter) {
+    for(int i = 0; i < counter; i++) {
+        for(int j = 0; j < counter-i; i++) {
+            if (strcmp(list_of_boxes[i]->box_name, list_of_boxes[i+1]->box_name) > 0) {
+                void* temp = list_of_boxes[i];
+                list_of_boxes[i] = list_of_boxes[i+1];
+                list_of_boxes[i+1] = temp;
+            }
+        }
+    }
+}
+
+
 void manager_request(void* newrequest,uint8_t code_pipe ,char* register_pipe) {
     char buffer[MAX_LINE] = "";
     writer(newrequest, code_pipe, buffer);
@@ -34,7 +47,8 @@ void manager_request(void* newrequest,uint8_t code_pipe ,char* register_pipe) {
 
 void manager_create_remove(request* newrequest, char* pipe, char* register_pipe) {
     manager_request(newrequest,newrequest->code,register_pipe);
-    if (mkfifo(pipe, 0777) < 0) {exit(1);}
+    int fd_fifo;
+    if ((fd_fifo = mkfifo(pipe, 0777)) < 0) {exit(1);}
     int fd = open(pipe, O_RDONLY);
     if (fd < 0) {exit(1);}
     char message[MAX_LINE];
@@ -51,11 +65,13 @@ void manager_create_remove(request* newrequest, char* pipe, char* register_pipe)
     }
     free(response);
     close(fd);
+    unlink(pipe);
 }
 
 void manager_list(list_manager_request* newrequest, char* pipe, char*register_pipe) {
     manager_request(newrequest, newrequest->code, register_pipe);
-    if (mkfifo(pipe, 0777) < 0) {exit(1);}
+    int fd_fifo;
+    if ((fd_fifo = mkfifo(pipe, 0777))  < 0) {exit(1);}
     long unsigned int size = 100;
     int counter = 0;
     list_manager_response** list_of_boxes = malloc(size*sizeof(list_manager_response*));
@@ -80,6 +96,7 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
                 fprintf(stdout, "NO BOXES FOUND\n");
                 free(list_of_boxes[counter]);
                 free(list_of_boxes);
+                unlink(pipe);
                 return;
             }
             break;
@@ -92,6 +109,7 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
     }
         close(fd);
     //here we sort the array
+    sort_boxes(list_of_boxes, counter);
     for (int i = 0; i <= counter; i++) {
         fprintf(stdout, "%s %zu %zu %zu\n", list_of_boxes[i]->box_name, 
         list_of_boxes[i]->box_size, list_of_boxes[i]->n_pubs, list_of_boxes[i]->n_subs);
@@ -100,6 +118,8 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
         free(list_of_boxes[i]);
     }
     free(list_of_boxes);
+    close(fd_fifo);
+    unlink(pipe);
 }
 
 

@@ -13,6 +13,9 @@
 #include "../producer-consumer/producer-consumer.h"
 #include <unistd.h>
 #include "../fs/operations.h"
+#include <errno.h>
+#include <signal.h>
+
 
 
 pc_queue_t *task_queue;
@@ -23,6 +26,20 @@ box* server_boxes;
 int size_boxes;
 pthread_mutex_t box_size_lock;
 thread* thread_pool;
+
+
+
+
+
+void ignore_signal(int s) {
+   ssize_t t = write(1,"ESTOU NO SGINAL",strlen("ESTOU NO SGINAL"));
+   (void) t;
+   (void) s;
+   signal(SIGPIPE, ignore_signal);
+   } // we can improve this by using a mask
+
+
+
 
 void process_sub(void* arg, int* index) {
     pthread_mutex_lock(&box_size_lock);
@@ -40,6 +57,9 @@ void process_sub(void* arg, int* index) {
     pthread_mutex_unlock(&box_size_lock);
     if (tester == 0) {exit(1);}
     int fd_tfs = tfs_open(((request*)arg)->box_name, 0);
+    signal(SIGPIPE, ignore_signal);
+        int fd = open(((request*)arg)->pipe_name, O_WRONLY);
+        if (fd < 0) {printf("exit2 deu bronca \n");exit(1);}
     while (1) {
         if (fd_tfs == -1) {printf("aconteceu algo a abrir\n");exit(1);}
         pthread_mutex_lock(&server_boxes[thread_pool[*index].index].box_lock);
@@ -59,15 +79,22 @@ void process_sub(void* arg, int* index) {
         char pipe_message[MAX_LINE] = "";
         writer(&newmessage,10, pipe_message);
         printf("dps do writer no sub %s\n",pipe_message );
-        int fd = open(((request*)arg)->pipe_name, O_WRONLY);
-        if (fd < 0) {printf("exit2 deu bronca \n");exit(1);}
+        printf("dps do open no sub\n");
         ssize_t bytes = write(fd, pipe_message, sizeof(pipe_message));
+        printf("dps do write no sub\n");
+            if (errno == EPIPE) {
+                printf("entrei no Epipe\n");
+                server_boxes[thread_pool[*index].index].n_subs -=1;
+                tfs_close(fd_tfs);
+                return;
+            }
         bytes++;
         memset(teste, 0, sizeof(teste));
-        close(fd);
         printf("nao dei exit no sub\n");
     }
+        close(fd);
     tfs_close(fd_tfs);
+    server_boxes[thread_pool[*index].index].n_subs -=1;
     return;
 }
 
@@ -88,13 +115,24 @@ void process_pub(void* arg, int* index) {
     }
     if (tester == 0) {printf("teste exit0\n");exit(1);}
     pthread_mutex_unlock(&box_size_lock);
+    signal(SIGPIPE, ignore_signal);
+    int fd = open(((request*)arg)->pipe_name, O_RDONLY);
+    if (fd < 0) {printf("teste exit1\n");exit(1);}
     while (1) {
         printf("ESTOU NO LOOP DO PUB\n");
-        int fd = open(((request*)arg)->pipe_name, O_RDONLY);
-        if (fd < 0) {printf("teste exit1\n");exit(1);}
+        printf("este e o erno %d", errno);
+            if (errno == EPIPE) {
+               break; 
+            }
         char buffer[MAX_LINE];
         printf("teste1\n");
         ssize_t bytes = read(fd,buffer,sizeof(buffer));
+        printf("este e o erno dps do read%d", errno);
+        if (bytes == 0) {
+            if (errno == EPIPE) {
+               break; 
+            }
+        }
         if (bytes > 0) {
             char *end;
             printf("Isto e o buffer %s\n", buffer);
@@ -123,8 +161,8 @@ void process_pub(void* arg, int* index) {
             b++;*/
             free(pipe_message);
         }
-        close(fd);
     }
+        close(fd);
     printf("sai do loop no pub \n");
     server_boxes[thread_pool[*index].index].n_pub = 0;
     return;   
@@ -159,6 +197,7 @@ void process_manager_list(void* arg, int* index) {
         counter++;
     }
     printf("ANTES DO OPEN \n");
+    signal(SIGPIPE, ignore_signal);
     int fd = open(((list_manager_request*)arg)->pipe_name, O_WRONLY);
     if (fd < 0) {
         return;
@@ -170,6 +209,11 @@ void process_manager_list(void* arg, int* index) {
         writer(&boxes_to_send[i], boxes_to_send[i].code, buffer);
         printf("valor do writer %s\n",buffer);
         ssize_t value = write(fd, buffer, strlen(buffer));
+        if (value == -1) {
+            if (errno == EPIPE) {
+                break;
+            }
+        }
         value++;
     }
     close(fd);
@@ -211,12 +255,19 @@ void process_manager_remove(void* arg, int* index) {
     char buffer[MAX_LINE] = "";
     writer(&response, response.code, buffer);
     printf("writer do manager remove %s %ld\n", buffer, strlen(buffer));
+    signal(SIGPIPE, ignore_signal);
     int fd = open(((request*)arg)->pipe_name, O_WRONLY);
     if (fd < 0) {
         pthread_mutex_unlock(&box_size_lock);
         return;
     }
     ssize_t value = write(fd,buffer, strlen(buffer));
+    if (value == -1) {
+        if (errno == EPIPE) {
+            pthread_mutex_unlock(&box_size_lock);
+            return;
+        }
+    }
     printf("quanto foi o meu value %ld\n", value);
     value++;
     pthread_mutex_unlock(&box_size_lock);
@@ -260,6 +311,7 @@ void process_manager_create(void* arg, int* index) {
         tester = 1;
     }
     tfs_close(fd_tfs);
+    signal(SIGPIPE, ignore_signal);
     int fd = open(((request*)arg)->pipe_name, O_WRONLY);
     if (fd < 0) {exit(1);}
     response_manager response;
@@ -277,6 +329,11 @@ void process_manager_create(void* arg, int* index) {
     char buffer[MAX_LINE] = "";
     writer(&response, response.code, buffer);
     ssize_t bytes = write(fd, buffer, strlen(buffer));
+    if (bytes == -1) {
+        if (errno == EPIPE) {
+            return;
+        }
+    }
     printf("tamanho de mbroker para manager %ld \n", bytes);
     bytes++;
     close(fd);
@@ -297,6 +354,7 @@ void *thread_init(void*  index) {
         printf("dps do pop ver o noma da box %s\n", ((request*)newtask->request)->box_name);
         printf("valor do index no init %d \n",*((int*)index));
         newtask->function(newtask->request, (int *)index);
+        printf("SOU UMA THREAD E EU ACABEI\n");
         //newtask need to be freed
         //while (1)
         // cond var.
@@ -370,6 +428,7 @@ int main(int argc, char **argv) {
     for (int i = 0;i < atoi(argv[2]); i++) {
         pthread_join(thread_pool[i].thread, NULL);
     }
+    unlink(argv[1]);
     // handle signal to end the program and then join the threads
     fprintf(stderr, "usage: mbroker <pipename>\n");
     WARN("unimplemented"); // TODO: implement
