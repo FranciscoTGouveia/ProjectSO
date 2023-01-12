@@ -50,10 +50,3 @@ int pcq_enqueue(pc_queue_t *queue, void *elem);
 void *pcq_dequeue(pc_queue_t *queue);
 
 #endif // __PRODUCER_CONSUMER_H__
-/* 
-Ai como ela é belaaaaaaaa, bela demais.
-E eu so tenho penaaaaaa, de já não saber como ela vai
-Quando deu por mim alguem viu em tiiiii, algo que eu não vi então perdiiiiii
-Só espero que, sejas feliz, já que te leravam de mim
-TUUUUU TUUU TUUUUUU TURURURURU TUUU TUU TUU
- */
