@@ -72,6 +72,7 @@ void manager_create_remove(request* newrequest, char* pipe, char* register_pipe)
 void manager_list(list_manager_request* newrequest, char* pipe, char*register_pipe) {
     manager_request(newrequest, newrequest->code, register_pipe);
     int fd_fifo;
+    printf("antes do mkfifo \n");
     if ((fd_fifo = mkfifo(pipe, 0777))  < 0) {exit(1);}
     long unsigned int size = 100;
     int counter = 0;

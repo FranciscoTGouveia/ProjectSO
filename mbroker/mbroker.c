@@ -190,7 +190,6 @@ void process_manager_list(void* arg, int* index) {
         }
     }
     pthread_mutex_unlock(&box_size_lock);
-    boxes_to_send[counter].last = 1;
     if (counter == 0) {
         boxes_to_send[counter].code = 8;
             boxes_to_send[counter].box_size = 0; // need to calculate the size 
@@ -199,9 +198,15 @@ void process_manager_list(void* arg, int* index) {
         memset(boxes_to_send[counter].box_name, 0, MAX_BOX_NAME);
         counter++;
     }
+    boxes_to_send[counter - 1].last = 1;
     printf("ANTES DO OPEN \n");
     signal(SIGPIPE, ignore_signal);
     int fd = open(((list_manager_request*)arg)->pipe_name, O_WRONLY);
+            if (errno == EPIPE) {
+                printf("entrei no EPIPE\n");
+                close(fd);
+                return;
+            }
     if (fd < 0) {
         return;
     }
