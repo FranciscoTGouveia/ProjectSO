@@ -18,18 +18,18 @@
 }*/
 
 
+
 void sort_boxes(list_manager_response** list_of_boxes, int counter) {
     for(int i = 0; i < counter; i++) {
         for(int j = 0; j < counter-i; i++) {
-            if (strcmp(list_of_boxes[i]->box_name, list_of_boxes[i+1]->box_name) > 0) {
-                void* temp = list_of_boxes[i];
-                list_of_boxes[i] = list_of_boxes[i+1];
-                list_of_boxes[i+1] = temp;
+            if (strcmp(list_of_boxes[j]->box_name, list_of_boxes[j+1]->box_name) > 0) {
+                void* temp = list_of_boxes[j];
+                list_of_boxes[j] = list_of_boxes[j+1];
+                list_of_boxes[j+1] = temp;
             }
         }
     }
 }
-
 
 void manager_request(void* newrequest,uint8_t code_pipe ,char* register_pipe) {
     char buffer[MAX_LINE];
@@ -94,7 +94,7 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
         printf("dps do reader \n");
         if (list_of_boxes[counter]->last == 1) {
             printf("antes do box_name\n");
-            if (list_of_boxes[counter]->box_name[0] == '0') {
+            if (list_of_boxes[counter]->box_name[0] == '\0') {
                 fprintf(stdout, "NO BOXES FOUND\n");
                 free(list_of_boxes[counter]);
                 free(list_of_boxes);

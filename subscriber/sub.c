@@ -18,7 +18,8 @@ void getCTRLC(int s) {
     (void) s;
     char buffer[100];
     int value = snprintf(buffer, sizeof(buffer), "%d", counter);
-    if (write(STDOUT_FILENO,"ESTOU NO SGINAL",strlen("ESTOU NO SGINAL")) < 0) {
+    buffer[strlen(buffer) - 1] = '\n';
+    if (write(STDOUT_FILENO,"ESTOU NO SGINAL\n",strlen("ESTOU NO SGINAL\n")) < 0) {
         exit(1);
     }
     if (write(STDOUT_FILENO, buffer, (size_t)value) < 0) {
@@ -47,13 +48,13 @@ int main(int argc, char **argv) {
     printf("Tamanho que foi escrito %ld \n", value);
     value++;
     close(fd);
-    if ((fd_fifo = mkfifo(argv[2], 0777)) < 0) {
+    if (mkfifo(argv[2], 0777) < 0) {
         exit(1);
     }
     signal(SIGINT, getCTRLC);
+    fd_fifo = open(argv[2], O_RDONLY);
+    if (fd < 0) {exit(1);}
     while (1) {
-        fd = open(argv[2], O_RDONLY);
-        if (fd < 0) {exit(1);}
         char message[MAX_LINE];
         value = read(fd, message, sizeof(message));
         counter++;
@@ -62,7 +63,6 @@ int main(int argc, char **argv) {
         messages_pipe* newmesage = reader_stc(message);
         fprintf(stdout, "%s\n", newmesage->message);
         free(newmesage);
-        close(fd);
     }
     close(fd_fifo);
     unlink(argv[2]);

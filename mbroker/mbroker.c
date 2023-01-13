@@ -57,40 +57,62 @@ void process_sub(void* arg, int* index) {
     pthread_mutex_unlock(&box_size_lock);
     if (tester == 0) {exit(1);}
     int fd_tfs = tfs_open(((request*)arg)->box_name, 0);
+    if (fd_tfs == -1) {printf("aconteceu algo a abrir\n");exit(1);}
     signal(SIGPIPE, ignore_signal);
         int fd = open(((request*)arg)->pipe_name, O_WRONLY);
         if (fd < 0) {printf("exit2 deu bronca \n");exit(1);}
     while (1) {
-        if (fd_tfs == -1) {printf("aconteceu algo a abrir\n");exit(1);}
         pthread_mutex_lock(&server_boxes[thread_pool[*index].index].box_lock);
         messages_pipe newmessage;
         newmessage.code = 10;
         char teste[1024];
-        while (tfs_read(fd_tfs, teste, sizeof(teste))== 0) {
+        ssize_t value;
+        while ((value = tfs_read(fd_tfs, teste, sizeof(teste))) == 0) {
             printf("estou bloqueado no sub\n");
             pthread_cond_wait(&server_boxes[thread_pool[*index].index].cond_var,
              &server_boxes[thread_pool[*index].index].box_lock);
         }
         printf("ESTOU DESBLOQUEADO \n");
-        pthread_mutex_unlock(&server_boxes[thread_pool[*index].index].box_lock);
-        strcpy(newmessage.message, teste);
-        printf("teste %s\n", teste);
-        printf("bytes no read do sub %s\n", newmessage.message);
-        char pipe_message[MAX_LINE];
-        writer_stc(&newmessage,10, pipe_message);
-        printf("dps do writer no sub %s\n",pipe_message );
-        printf("dps do open no sub\n");
-        ssize_t bytes = write(fd, pipe_message, sizeof(pipe_message));
-        printf("dps do write no sub\n");
-            if (errno == EPIPE) {
-                printf("entrei no Epipe\n");
+        if (value == -1) {
+            server_boxes[thread_pool[*index].index].n_subs -=1;
+            close(fd);
+            tfs_close(fd_tfs);
+            pthread_mutex_unlock(&server_boxes[thread_pool[*index].index].box_lock);
+            return;
+        }
+        while (value > 0) {
+            printf("valor do value %ld\n", value);
+            strcpy(newmessage.message, teste);
+            printf("teste %s\n", teste);
+            printf("bytes no read do sub %s\n", newmessage.message);
+            char pipe_message[MAX_LINE];
+            writer_stc(&newmessage,10, pipe_message);
+            printf("dps do writer no sub %s\n",pipe_message );
+            printf("dps do open no sub\n");
+            ssize_t bytes = write(fd, pipe_message, sizeof(pipe_message));
+            printf("dps do write no sub\n");
+                if (errno == EPIPE) {
+                    printf("entrei no Epipe\n");
+                    server_boxes[thread_pool[*index].index].n_subs -=1;
+                    tfs_close(fd_tfs);
+                    pthread_mutex_unlock(&server_boxes[thread_pool[*index].index].box_lock);
+                    return;
+                }
+            bytes++;
+            memset(teste, 0, sizeof(teste));
+            memset(newmessage.message, 0, (sizeof(char)*1024));
+            value = tfs_read(fd_tfs, teste, sizeof(teste));
+            printf("valor do value dps do segundo read %ld\n", value);
+            if (value == -1) {
                 server_boxes[thread_pool[*index].index].n_subs -=1;
+                close(fd);
                 tfs_close(fd_tfs);
+                pthread_mutex_unlock(&server_boxes[thread_pool[*index].index].box_lock);
                 return;
             }
-        bytes++;
-        memset(teste, 0, sizeof(teste));
-        printf("nao dei exit no sub\n");
+            printf("nao dei exit no sub\n");
+        }
+        pthread_mutex_unlock(&server_boxes[thread_pool[*index].index].box_lock);
     }
         close(fd);
     tfs_close(fd_tfs);
@@ -118,21 +140,22 @@ void process_pub(void* arg, int* index) {
     signal(SIGPIPE, ignore_signal);
     int fd = open(((request*)arg)->pipe_name, O_RDONLY);
     if (fd < 0) {printf("teste exit1\n");exit(1);}
+    int fd_tfs = tfs_open(((request*)arg)->box_name, TFS_O_APPEND);
+    if (fd_tfs == -1) {
+        printf("teste exit2\n");
+        close(fd);
+        return;
+    }
     while (1) {
         printf("ESTOU NO LOOP DO PUB\n");
         printf("este e o erno %d", errno);
-            if (errno == EPIPE) {
-               break; 
-            }
         char buffer[MAX_LINE];
         printf("teste1\n");
         ssize_t bytes = read(fd,buffer,sizeof(buffer));
         printf("este e o erno dps do read%d\n", errno);
-        if (bytes == 0) {
-            if (errno == EPIPE) {
+            if (bytes == 0) {
                break; 
             }
-        }
         if (bytes > 0) {
             //char *end;
             uint8_t teste;
@@ -141,15 +164,17 @@ void process_pub(void* arg, int* index) {
             printf("OLA BRO N ME IGNORES\n");
             //uint8_t code_pipe =(uint8_t)strtoul(strtok(buffer, "|"), &end, 10);
             messages_pipe* pipe_message = reader_stc(buffer);
-            int fd_tfs = tfs_open(((request*)arg)->box_name, TFS_O_APPEND);
-            if (fd_tfs == -1) {printf("teste exit2\n");exit(1);}
             ssize_t bytes_tfs = tfs_write(fd_tfs, pipe_message->message,
-             strlen(pipe_message->message));
-            server_boxes[thread_pool[*index].index].box_size += (int)bytes_tfs;
+             strlen(pipe_message->message) + 1);
+            if (bytes_tfs == -1) {
+                printf("demos exit\n");
+                free(pipe_message);
+                break;
+            }
+            server_boxes[thread_pool[*index].index].box_size += (int)strlen(pipe_message->message);
             printf("tamanho do q foi escrito pelo pub %ld\n", bytes_tfs);
             printf("tamanho do q era suposto ter escrito %ld\n", sizeof(pipe_message->message));
             printf("mensagem q foi escrita %s \n", pipe_message->message);
-            tfs_close(fd_tfs);
             pthread_cond_broadcast(&server_boxes[thread_pool[*index].index].cond_var);
             /*char teste[MAX_LINE];
             fd_tfs = tfs_open(((request*)arg)->box_name, TFS_O_APPEND);
@@ -165,6 +190,7 @@ void process_pub(void* arg, int* index) {
             free(pipe_message);
         }
     }
+    tfs_close(fd_tfs);
         close(fd);
     printf("sai do loop no pub \n");
     server_boxes[thread_pool[*index].index].n_pub = 0;
@@ -192,9 +218,7 @@ void process_manager_list(void* arg, int* index) {
     pthread_mutex_unlock(&box_size_lock);
     if (counter == 0) {
         boxes_to_send[counter].code = 8;
-            boxes_to_send[counter].box_size = 0; // need to calculate the size 
-            boxes_to_send[counter].n_pubs = 0; 
-            boxes_to_send[counter].n_subs = 0; 
+            boxes_to_send[counter].n_subs = 24; 
         memset(boxes_to_send[counter].box_name, 0, MAX_BOX_NAME);
         counter++;
     }
@@ -290,14 +314,30 @@ void process_manager_create(void* arg, int* index) {
     printf("cheguei manager\n");
     pthread_mutex_lock(&box_size_lock);
     printf("index no manager %d\n", *index);
+    int tester = 0;
     for (int i = 0; i < size_boxes; i++) {
         if (strcmp(((request *)arg)->box_name, server_boxes[i].box_name) == 0) {
-            printf("exit\n");
+            printf("JA EXISTE COM O MESMO NOME \n");
+            signal(SIGPIPE, ignore_signal);
+            int fd = open(((request*)arg)->pipe_name, O_WRONLY);
+            if (fd < 0) {exit(1);}
+            response_manager response;
+            response.code = 4;
+            response.return_code = -1;
+            strcpy(response.error_message, "Ocorreu um erro na criação da caixa");
             pthread_mutex_unlock(&box_size_lock);
-            exit(1);
+            char buffer[MAX_LINE];
+            writer_stc(&response, response.code, buffer);
+            ssize_t bytes = write(fd, buffer, sizeof(buffer));
+            if (bytes == -1) {
+                if (errno == EPIPE) {
+                    return;
+                }
+            }
+            close(fd);
+            return;
         }   
     }
-    int tester = 0;
     for (int i = 0; i < size_boxes; i++) {
         if (server_boxes[i].free == 0 ) {
             tester = 1;
@@ -309,8 +349,15 @@ void process_manager_create(void* arg, int* index) {
     }
     if (tester == 0) {
         server_boxes = realloc(server_boxes, sizeof(box)*2*(unsigned int)size_boxes);
+        for (int i = size_boxes; i < (2*size_boxes);i++) {
+            server_boxes[i].free = 0;
+            if (pthread_cond_init(&server_boxes[i].cond_var, NULL) == -1) {exit(1);}
+            if (pthread_mutex_init(&server_boxes[i].box_lock, NULL) == -1) {exit(1);}
+
+        }
         thread_pool[*index].index = size_boxes;
         server_boxes[size_boxes].free = 1;
+        strcpy(server_boxes[size_boxes].box_name, ((request*)arg)->box_name);
         size_boxes*=2;
     }
     tester = 0;

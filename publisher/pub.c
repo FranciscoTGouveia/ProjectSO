@@ -6,7 +6,18 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
+#include <errno.h>
 #define MAX_MESSAGE 1024
+
+void ignore_signal(int s) {
+    if (write(1,"ESTOU NO SIGNAL DO PUB\n", strlen("ESTOU NO SIGNAL DO PUB\n")) < 0) {
+
+    }
+    (void) s;
+
+}
+
 
 int main(int argc, char **argv) {
     (void)argc;
@@ -26,6 +37,7 @@ int main(int argc, char **argv) {
     ssize_t value = write(fd, buffer, sizeof(buffer));
     value++;
     close(fd);
+    signal(SIGPIPE, ignore_signal);
     fd = open(argv[2], O_WRONLY);
     if (fd < 0) {exit(1);}
     while (1) {
@@ -50,11 +62,12 @@ int main(int argc, char **argv) {
         memcpy(&teste, buffer1, sizeof(teste));
         printf("valor do code dps do writer no pub %d \n", teste);
         value = write(fd, buffer1, sizeof(buffer1));
+        if (errno == EPIPE) {
+            break;
+        }
         value++;
     }
     close(fd);
     unlink(argv[2]);
-    fprintf(stderr, "usage: pub <register_pipe_name> <box_name>\n");
-    WARN("unimplemented"); // TODO: implement
     return -1;
 }
