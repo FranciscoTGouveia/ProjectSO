@@ -1,7 +1,7 @@
 #include "../utils/logging.h"
 #include "../utils/pipeflow.h"
-#include "../utils/writer.h"
-#include "../utils/reader.h"
+#include "../utils/reader_stc.h"
+#include "../utils/writer_stc.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -12,11 +12,18 @@
 
 int fd_fifo;
 char* pipe_name;
+int counter = 0;
 
 void getCTRLC(int s) {
     (void) s;
-    ssize_t t = write(1,"ESTOU NO SGINAL",strlen("ESTOU NO SGINAL"));
-    (void) t;
+    char buffer[100];
+    int value = snprintf(buffer, sizeof(buffer), "%d", counter);
+    if (write(STDOUT_FILENO,"ESTOU NO SGINAL",strlen("ESTOU NO SGINAL")) < 0) {
+        exit(1);
+    }
+    if (write(STDOUT_FILENO, buffer, (size_t)value) < 0) {
+        exit(1);
+    }
     close(fd_fifo);
     signal(SIGINT, getCTRLC);
     unlink(pipe_name);
@@ -32,11 +39,11 @@ int main(int argc, char **argv) {
     newrequest.code = 2;
     strcpy(newrequest.pipe_name, argv[2]);
     strcpy(newrequest.box_name, argv[3]);
-    char buffer[MAX_LINE] = "";
-    writer(&newrequest, newrequest.code, buffer);
+    char buffer[MAX_LINE];
+    writer_stc(&newrequest, newrequest.code, buffer);
     printf("Mensagem a mandar no pipe %s tamanho %ld \n", buffer, strlen(buffer));
     int fd = open(argv[1], O_WRONLY);
-    ssize_t value = write(fd, buffer, strlen(buffer));
+    ssize_t value = write(fd, buffer, sizeof(buffer));
     printf("Tamanho que foi escrito %ld \n", value);
     value++;
     close(fd);
@@ -49,10 +56,10 @@ int main(int argc, char **argv) {
         if (fd < 0) {exit(1);}
         char message[MAX_LINE];
         value = read(fd, message, sizeof(message));
-        printf("mensagem do pipe %s\n", message);
+        counter++;
         value++;
-        strtok(message, "|");
-        messages_pipe* newmesage = reader(10);
+        //strtok(message, "|");
+        messages_pipe* newmesage = reader_stc(message);
         fprintf(stdout, "%s\n", newmesage->message);
         free(newmesage);
         close(fd);

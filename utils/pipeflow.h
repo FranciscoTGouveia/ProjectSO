@@ -5,7 +5,7 @@
 #include <math.h>
 #define MAX_PIPE_NAME 256
 #define MAX_BOX_NAME 32 
-#define MAX_LINE 572 
+#define MAX_LINE 1029
 #define GLOBAL_PATH "global_fifo"
 
 typedef struct __attribute__ ((__packed__)){

@@ -1,8 +1,8 @@
 #include "../utils/logging.h"
 #include "../utils/pipeflow.h"
 #include "../utils/betterassert.h"
-#include "../utils/reader.h"
-#include "../utils/writer.h"
+#include "../utils/reader_stc.h"
+#include "../utils/writer_stc.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -32,13 +32,13 @@ void sort_boxes(list_manager_response** list_of_boxes, int counter) {
 
 
 void manager_request(void* newrequest,uint8_t code_pipe ,char* register_pipe) {
-    char buffer[MAX_LINE] = "";
-    writer(newrequest, code_pipe, buffer);
+    char buffer[MAX_LINE];
+    writer_stc(newrequest, code_pipe, buffer);
     printf("buffer a ser enviado no pipe pelo manager %s\n", buffer);
     int fd = open(register_pipe, O_WRONLY);
     if (fd < 0) {exit(1);}
     printf("Tamanho do buffer do manager %ld\n", strlen(buffer));
-    ssize_t value = write(fd, buffer, strlen(buffer));
+    ssize_t value = write(fd, buffer, sizeof(buffer));
     printf("Tamanho do q foi escrito noo manager %ld\n", value);
     value++;
     close(fd);
@@ -55,9 +55,10 @@ void manager_create_remove(request* newrequest, char* pipe, char* register_pipe)
     ssize_t value = read(fd, message, sizeof(message));
     printf("dps do reader %s \n", message);
     value++;
-    char* end;
-    uint8_t code_pipe =(uint8_t)strtoul(strtok(message, "|"), &end, 10);
-    response_manager* response = reader(code_pipe);
+    //char* end;
+    //uint8_t code_pipe =(uint8_t)strtoul(strtok(message, "|"), &end, 10);
+    response_manager* response = reader_stc(message);
+    printf("valores da response code %d message %s return %d \n", response->code, response->error_message, response->return_code);
     if (response->return_code == -1) {
         fprintf(stdout, "ERROR %s\n", response->error_message);
     } else {
@@ -84,11 +85,11 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
         ssize_t value = read(fd, message, sizeof(message));
         printf("esta e a message %s \n", message);
         value++;
-        char* end;
-        printf("antes do strtok \n");
-        uint8_t code_pipe =(uint8_t)strtoul(strtok(message, "|"), &end, 10);
+        //char* end;
+        //printf("antes do strtok \n");
+        //uint8_t code_pipe =(uint8_t)strtoul(strtok(message, "|"), &end, 10);
         printf("dps do strtok \n");
-        list_of_boxes[counter] = reader(code_pipe);
+        list_of_boxes[counter] = reader_stc(message);
         printf("dps do reader \n");
         if (list_of_boxes[counter]->last == 1) {
             printf("antes do box_name\n");

@@ -16,6 +16,7 @@ typedef struct {
     int n_pub;
     int n_subs;
     int free; //0 if is free 1 if not
+    int box_size;
 } box;
 
 

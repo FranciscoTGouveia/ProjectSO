@@ -1,6 +1,6 @@
 #include "../utils/logging.h"
 #include "../utils/pipeflow.h"
-#include "../utils/writer.h"
+#include "../utils/writer_stc.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -15,15 +15,15 @@ int main(int argc, char **argv) {
     newrequest.code = 1;
     strcpy(newrequest.pipe_name, argv[2]);
     strcpy(newrequest.box_name, argv[3]);
-    char buffer[MAX_LINE] = "";
-    writer(&newrequest, newrequest.code, buffer);
+    char buffer[MAX_LINE];
+    writer_stc(&newrequest, newrequest.code, buffer);
     int fd_fifo;
     if ((fd_fifo = mkfifo(argv[2], 0777)) < 0) {
         exit(1);
     }
     int fd = open(argv[1], O_WRONLY);
     if (fd < 0) {return -1;}
-    ssize_t value = write(fd, buffer, strlen(buffer));
+    ssize_t value = write(fd, buffer, sizeof(buffer));
     value++;
     close(fd);
     fd = open(argv[2], O_WRONLY);
@@ -39,13 +39,17 @@ int main(int argc, char **argv) {
         if (message[strlen(message) -1] == '\n') {
             message[strlen(message) - 1] = '\0';
         }
-        strcpy(buffer, "");
+        //strcpy(buffer, "");
+        char buffer1[MAX_LINE];
         messages_pipe newmessage;
-        newmessage.code = 10;
+        newmessage.code = 9;
         strcpy(newmessage.message, message);
-        writer(&newmessage, newmessage.code, buffer);
-        printf("mensagem serializada no pub %s\n",buffer);
-        value = write(fd, buffer, sizeof(buffer));
+        writer_stc(&newmessage, newmessage.code, buffer1);
+        printf("mensagem serializada no pub %s\n",buffer1);
+        uint8_t teste;
+        memcpy(&teste, buffer1, sizeof(teste));
+        printf("valor do code dps do writer no pub %d \n", teste);
+        value = write(fd, buffer1, sizeof(buffer1));
         value++;
     }
     close(fd);

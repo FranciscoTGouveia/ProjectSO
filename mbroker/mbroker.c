@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../utils/task.h"
-#include "../utils/reader.h"
-#include "../utils/writer.h"
+#include "../utils/reader_stc.h"
+#include "../utils/writer_stc.h"
 #include "../utils/pipeflow.h"
 #include "../utils/server_structures.h"
 #include "../producer-consumer/producer-consumer.h"
@@ -76,8 +76,8 @@ void process_sub(void* arg, int* index) {
         strcpy(newmessage.message, teste);
         printf("teste %s\n", teste);
         printf("bytes no read do sub %s\n", newmessage.message);
-        char pipe_message[MAX_LINE] = "";
-        writer(&newmessage,10, pipe_message);
+        char pipe_message[MAX_LINE];
+        writer_stc(&newmessage,10, pipe_message);
         printf("dps do writer no sub %s\n",pipe_message );
         printf("dps do open no sub\n");
         ssize_t bytes = write(fd, pipe_message, sizeof(pipe_message));
@@ -127,25 +127,28 @@ void process_pub(void* arg, int* index) {
         char buffer[MAX_LINE];
         printf("teste1\n");
         ssize_t bytes = read(fd,buffer,sizeof(buffer));
-        printf("este e o erno dps do read%d", errno);
+        printf("este e o erno dps do read%d\n", errno);
         if (bytes == 0) {
             if (errno == EPIPE) {
                break; 
             }
         }
         if (bytes > 0) {
-            char *end;
-            printf("Isto e o buffer %s\n", buffer);
-            uint8_t code_pipe =(uint8_t)strtoul(strtok(buffer, "|"), &end, 10);
-            messages_pipe* pipe_message = reader(code_pipe);
+            //char *end;
+            uint8_t teste;
+            memcpy(&teste, buffer, sizeof(teste));
+            printf("Isto e o code do meu buffer %d\n", teste);
+            printf("OLA BRO N ME IGNORES\n");
+            //uint8_t code_pipe =(uint8_t)strtoul(strtok(buffer, "|"), &end, 10);
+            messages_pipe* pipe_message = reader_stc(buffer);
             int fd_tfs = tfs_open(((request*)arg)->box_name, TFS_O_APPEND);
             if (fd_tfs == -1) {printf("teste exit2\n");exit(1);}
             ssize_t bytes_tfs = tfs_write(fd_tfs, pipe_message->message,
              strlen(pipe_message->message));
+            server_boxes[thread_pool[*index].index].box_size += (int)bytes_tfs;
             printf("tamanho do q foi escrito pelo pub %ld\n", bytes_tfs);
             printf("tamanho do q era suposto ter escrito %ld\n", sizeof(pipe_message->message));
             printf("mensagem q foi escrita %s \n", pipe_message->message);
-            bytes_tfs++;
             tfs_close(fd_tfs);
             pthread_cond_broadcast(&server_boxes[thread_pool[*index].index].cond_var);
             /*char teste[MAX_LINE];
@@ -180,7 +183,7 @@ void process_manager_list(void* arg, int* index) {
             boxes_to_send[counter].code = 8;
             boxes_to_send[counter].last = 0;
             strcpy(boxes_to_send[counter].box_name, server_boxes[i].box_name);
-            boxes_to_send[counter].box_size = 0; // need to calculate the size 
+            boxes_to_send[counter].box_size = (uint64_t)server_boxes[i].box_size; // need to calculate the size 
             boxes_to_send[counter].n_pubs = (unsigned int)server_boxes[i].n_pub;
             boxes_to_send[counter].n_subs = (unsigned int)server_boxes[i].n_subs;
             counter++;
@@ -204,11 +207,12 @@ void process_manager_list(void* arg, int* index) {
     }
     printf("valor de counter %d \n", counter);
     for (int i = 0; i < counter; i++) {
-        printf("dentro do loop %s \n", boxes_to_send[i].box_name);
-        char buffer[MAX_LINE] = "";
-        writer(&boxes_to_send[i], boxes_to_send[i].code, buffer);
+        printf("dentro do loop %s last %d \n", boxes_to_send[i].box_name,
+        boxes_to_send[i].last);
+        char buffer[MAX_LINE];
+        writer_stc(&boxes_to_send[i], boxes_to_send[i].code, buffer);
         printf("valor do writer %s\n",buffer);
-        ssize_t value = write(fd, buffer, strlen(buffer));
+        ssize_t value = write(fd, buffer, sizeof(buffer));
         if (value == -1) {
             if (errno == EPIPE) {
                 break;
@@ -250,10 +254,11 @@ void process_manager_remove(void* arg, int* index) {
         server_boxes[thread_pool[*index].index].free = 0;
         server_boxes[thread_pool[*index].index].n_pub = 0;
         server_boxes[thread_pool[*index].index].n_subs = 0;
+        server_boxes[thread_pool[*index].index].box_size = 0;
         memset(server_boxes[thread_pool[*index].index].box_name, 0, MAX_BOX_NAME);
     }
-    char buffer[MAX_LINE] = "";
-    writer(&response, response.code, buffer);
+    char buffer[MAX_LINE];
+    writer_stc(&response, response.code, buffer);
     printf("writer do manager remove %s %ld\n", buffer, strlen(buffer));
     signal(SIGPIPE, ignore_signal);
     int fd = open(((request*)arg)->pipe_name, O_WRONLY);
@@ -261,7 +266,7 @@ void process_manager_remove(void* arg, int* index) {
         pthread_mutex_unlock(&box_size_lock);
         return;
     }
-    ssize_t value = write(fd,buffer, strlen(buffer));
+    ssize_t value = write(fd,buffer, sizeof(buffer));
     if (value == -1) {
         if (errno == EPIPE) {
             pthread_mutex_unlock(&box_size_lock);
@@ -326,9 +331,9 @@ void process_manager_create(void* arg, int* index) {
         memset(response.error_message, 0, 1024);
     }
     pthread_mutex_unlock(&box_size_lock);
-    char buffer[MAX_LINE] = "";
-    writer(&response, response.code, buffer);
-    ssize_t bytes = write(fd, buffer, strlen(buffer));
+    char buffer[MAX_LINE];
+    writer_stc(&response, response.code, buffer);
+    ssize_t bytes = write(fd, buffer, sizeof(buffer));
     if (bytes == -1) {
         if (errno == EPIPE) {
             return;
@@ -390,16 +395,21 @@ int main(int argc, char **argv) {
         int fd = open(argv[1], O_RDONLY);
         if (fd == -1) {return -1;}
         char buffer[MAX_LINE];
-        while (read(fd, buffer, sizeof(buffer)) == 0) {} //MELHOR TIRAR O READ E BLOQUEANTE
+        while (read(fd, buffer, (sizeof(char)*MAX_LINE)) == 0) {} //MELHOR TIRAR O READ E BLOQUEANTE
         printf("li no mbroker\n");
         printf("Aqui e o buffer lido %s\n", buffer);
-        char* end;
-        uint8_t code_pipe =(uint8_t)strtoul(strtok(buffer, "|"), &end, 10);
-        printf("%u\n",code_pipe);
+        //char* end;
+        //uint8_t code_pipe =(uint8_t)strtoul(strtok(buffer, "|"), &end, 10);
+        //printf("%u\n",code_pipe);
         //uint8_t code_pipe = (uint8_t)strtok(buffer,"|");
         task* newtask;
         newtask = malloc(sizeof(task));
-        newtask->request = reader(code_pipe);
+        newtask->request = reader_stc(buffer);
+        printf("buffer do mbroker dps do reader code %d pipe %s box %s\n", ((request*)newtask->request)->code,
+        ((request*)newtask->request)->pipe_name, ((request*)newtask->request)->box_name);
+        uint8_t code_pipe;
+        memcpy(&code_pipe, buffer, sizeof(uint8_t));
+        printf("code pipe no mbroker %d\n", code_pipe);
         printf("tetatva de ver o box mbroker %s \n", ((request*)newtask->request)->box_name);
         switch (code_pipe) {
             case 1:
