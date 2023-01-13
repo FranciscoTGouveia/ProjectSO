@@ -17,9 +17,8 @@ int counter = 0;
 void getCTRLC(int s) {
     (void) s;
     char buffer[100];
-    int value = snprintf(buffer, sizeof(buffer), "%d", counter);
-    buffer[strlen(buffer) - 1] = '\n';
-    if (write(STDOUT_FILENO,"ESTOU NO SGINAL\n",strlen("ESTOU NO SGINAL\n")) < 0) {
+    int value = snprintf(buffer, sizeof(buffer) - 1, "%d", counter);
+    if (write(STDOUT_FILENO,"ESTOU NO SIGNAL\n",strlen("ESTOU NO SGINAL\n")) < 0) {
         exit(1);
     }
     if (write(STDOUT_FILENO, buffer, (size_t)value) < 0) {
@@ -66,7 +65,5 @@ int main(int argc, char **argv) {
     }
     close(fd_fifo);
     unlink(argv[2]);
-    fprintf(stderr, "usage: sub <register_pipe_name> <box_name>\n");
-    WARN("unimplemented"); // TODO: implement
     return -1;
 }

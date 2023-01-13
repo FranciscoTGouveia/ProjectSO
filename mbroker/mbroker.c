@@ -12,7 +12,7 @@
 #include "../utils/server_structures.h"
 #include "../producer-consumer/producer-consumer.h"
 #include <unistd.h>
-#include "../fs/operations.h"
+#include "../fs1/operations.h"
 #include <errno.h>
 #include <signal.h>
 
@@ -126,6 +126,11 @@ void process_pub(void* arg, int* index) {
     for (int i = 0; i < size_boxes; i++) {
         if (strcmp(((request*)arg)->box_name, server_boxes[i].box_name) == 0) {
             if (server_boxes[i].n_pub == 1) {
+                pthread_mutex_unlock(&box_size_lock);
+                int fd = open(((request*)arg)->pipe_name, O_RDONLY);
+                if (fd < 0) {printf("teste exit1\n");exit(1);}
+                close(fd);
+                printf("ENTROU AQUI\n");
                 return;
             }
             tester = 1;
@@ -135,7 +140,11 @@ void process_pub(void* arg, int* index) {
             break;
         } 
     }
-    if (tester == 0) {printf("teste exit0\n");exit(1);}
+    if (tester == 0) {
+        printf("teste exit0\n");  
+        pthread_mutex_unlock(&box_size_lock);
+        exit(1);
+    }
     pthread_mutex_unlock(&box_size_lock);
     signal(SIGPIPE, ignore_signal);
     int fd = open(((request*)arg)->pipe_name, O_RDONLY);
