@@ -45,6 +45,7 @@ void end_program_ctrlC(int s) {
     strlen("O PROGRAMA IRÁ ENCERRAR ASSIM QUE POSSÍVEL\n"));
     status = END;
     //pcq_destroy(task_queue);
+    tfs_destroy();
     free(task_queue);
     free(thread_pool);
     free(server_boxes);
