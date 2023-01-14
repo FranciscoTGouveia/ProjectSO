@@ -19,16 +19,11 @@
 
 
 
-void sort_boxes(list_manager_response** list_of_boxes, int counter) {
-    for(int i = 0; i < counter; i++) {
-        for(int j = 0; j < counter-i; i++) {
-            if (strcmp(list_of_boxes[j]->box_name, list_of_boxes[j+1]->box_name) > 0) {
-                void* temp = list_of_boxes[j];
-                list_of_boxes[j] = list_of_boxes[j+1];
-                list_of_boxes[j+1] = temp;
-            }
-        }
-    }
+
+int compare_func(const void*a, const void* b) {
+    list_manager_response* first = *(list_manager_response**)a;
+    list_manager_response* second = *(list_manager_response**)b;
+    return strcmp(first->box_name, second->box_name);
 }
 
 void manager_request(void* newrequest,uint8_t code_pipe ,char* register_pipe) {
@@ -111,7 +106,7 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
     }
         close(fd);
     //here we sort the array
-    sort_boxes(list_of_boxes, counter);
+    qsort(list_of_boxes, (size_t)(counter+1), sizeof(list_manager_response*), compare_func);
     for (int i = 0; i <= counter; i++) {
         fprintf(stdout, "%s %zu %zu %zu\n", list_of_boxes[i]->box_name, 
         list_of_boxes[i]->box_size, list_of_boxes[i]->n_pubs, list_of_boxes[i]->n_subs);
@@ -132,7 +127,11 @@ int main(int argc, char **argv) {
     if (argc == 5) {
         request newrequest;
         strcpy(newrequest.pipe_name, argv[argc - 3]);
-        strcpy(newrequest.box_name, argv[argc - 1]);
+        char box_name_slash[MAX_BOX_NAME];
+        memset(box_name_slash, 0, MAX_BOX_NAME);
+        strcpy(box_name_slash, "/");
+        strcat(box_name_slash, argv[argc-1]);
+        strcpy(newrequest.box_name, box_name_slash);
         if (strcmp(argv[argc - 2],CREATE) == 0) {
             newrequest.code = 3;
         } else if (strcmp(argv[argc - 2], REMOVE) == 0) {

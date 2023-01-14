@@ -25,7 +25,11 @@ int main(int argc, char **argv) {
     request newrequest;
     newrequest.code = 1;
     strcpy(newrequest.pipe_name, argv[2]);
-    strcpy(newrequest.box_name, argv[3]);
+    char box_name_slash[MAX_BOX_NAME];
+    memset(box_name_slash, 0, MAX_BOX_NAME);
+    strcpy(box_name_slash, "/");
+    strcat(box_name_slash, argv[3]);
+    strcpy(newrequest.box_name,box_name_slash);
     char buffer[MAX_LINE];
     writer_stc(&newrequest, newrequest.code, buffer);
     int fd_fifo;

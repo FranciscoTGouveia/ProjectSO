@@ -15,8 +15,9 @@
 #include "../fs1/operations.h"
 #include <errno.h>
 #include <signal.h>
-
-
+#define  END 2
+#define  GOING_TO_END 1
+#define ON_GOING 0
 
 pc_queue_t *task_queue;
 int active_threads = 0;
@@ -26,6 +27,7 @@ box* server_boxes;
 int size_boxes;
 pthread_mutex_t box_size_lock;
 thread* thread_pool;
+int status = ON_GOING;
 
 
 
@@ -36,12 +38,20 @@ void ignore_signal(int s) {
    (void) t;
    (void) s;
    signal(SIGPIPE, ignore_signal);
-   } // we can improve this by using a mask
+} // we can improve this by using a mask
 
+void end_program_ctrlC(int s) {
+    ssize_t value = write(1, "O PROGRAMA IRÁ ENCERRAR ASSIM QUE POSSÍVEL\n",
+    strlen("O PROGRAMA IRÁ ENCERRAR ASSIM QUE POSSÍVEL\n"));
+    (void) value;
+    (void) s;
+    signal(SIGINT, end_program_ctrlC);
+}
 
 
 
 void process_sub(void* arg, int* index) {
+    signal(SIGINT, end_program_ctrlC);
     pthread_mutex_lock(&box_size_lock);
     printf("entramos no sub\n");
     int tester = 0;
@@ -55,12 +65,12 @@ void process_sub(void* arg, int* index) {
         } 
     }
     pthread_mutex_unlock(&box_size_lock);
-    if (tester == 0) {exit(1);}
+    if (tester == 0) {printf("deu exit\n");exit(1);}
     int fd_tfs = tfs_open(((request*)arg)->box_name, 0);
     if (fd_tfs == -1) {printf("aconteceu algo a abrir\n");exit(1);}
     signal(SIGPIPE, ignore_signal);
-        int fd = open(((request*)arg)->pipe_name, O_WRONLY);
-        if (fd < 0) {printf("exit2 deu bronca \n");exit(1);}
+    int fd = open(((request*)arg)->pipe_name, O_WRONLY);
+    if (fd < 0) {printf("exit2 deu bronca \n");exit(1);}
     while (1) {
         pthread_mutex_lock(&server_boxes[thread_pool[*index].index].box_lock);
         messages_pipe newmessage;
@@ -73,6 +83,12 @@ void process_sub(void* arg, int* index) {
              &server_boxes[thread_pool[*index].index].box_lock);
         }
         printf("ESTOU DESBLOQUEADO \n");
+        if (status == END) {
+            pthread_mutex_unlock(&server_boxes[thread_pool[*index].index].box_lock);
+            close(fd);
+            tfs_close(fd_tfs);
+            return;
+        }
         if (value == -1) {
             server_boxes[thread_pool[*index].index].n_subs -=1;
             close(fd);
@@ -114,13 +130,14 @@ void process_sub(void* arg, int* index) {
         }
         pthread_mutex_unlock(&server_boxes[thread_pool[*index].index].box_lock);
     }
-        close(fd);
+    close(fd);
     tfs_close(fd_tfs);
     server_boxes[thread_pool[*index].index].n_subs -=1;
     return;
 }
 
 void process_pub(void* arg, int* index) {
+    signal(SIGINT, end_program_ctrlC);
     pthread_mutex_lock(&box_size_lock);
     int tester = 0;
     for (int i = 0; i < size_boxes; i++) {
@@ -156,6 +173,11 @@ void process_pub(void* arg, int* index) {
         return;
     }
     while (1) {
+        if (status == END) {
+            close(fd);
+            tfs_close(fd_tfs);
+            return;
+        }
         printf("ESTOU NO LOOP DO PUB\n");
         printf("este e o erno %d", errno);
         char buffer[MAX_LINE];
@@ -208,6 +230,7 @@ void process_pub(void* arg, int* index) {
 
 
 void process_manager_list(void* arg, int* index) {
+    signal(SIGINT, end_program_ctrlC);
     (void)index;
     printf("entrou no list\n");
     pthread_mutex_lock(&box_size_lock);
@@ -265,6 +288,7 @@ void process_manager_list(void* arg, int* index) {
 
 
 void process_manager_remove(void* arg, int* index) {
+    signal(SIGINT, end_program_ctrlC);
     pthread_mutex_lock(&box_size_lock);
     int tester = 0;
     for (int i = 0; i < size_boxes; i++) {
@@ -315,11 +339,13 @@ void process_manager_remove(void* arg, int* index) {
     value++;
     pthread_mutex_unlock(&box_size_lock);
     close(fd);
+    
 }
 
 
 
 void process_manager_create(void* arg, int* index) {
+    signal(SIGINT, end_program_ctrlC);
     printf("cheguei manager\n");
     pthread_mutex_lock(&box_size_lock);
     printf("index no manager %d\n", *index);
@@ -329,7 +355,7 @@ void process_manager_create(void* arg, int* index) {
             printf("JA EXISTE COM O MESMO NOME \n");
             signal(SIGPIPE, ignore_signal);
             int fd = open(((request*)arg)->pipe_name, O_WRONLY);
-            if (fd < 0) {exit(1);}
+            if (fd < 0) {printf("deu exit\n");exit(1);}
             response_manager response;
             response.code = 4;
             response.return_code = -1;
@@ -379,7 +405,7 @@ void process_manager_create(void* arg, int* index) {
     tfs_close(fd_tfs);
     signal(SIGPIPE, ignore_signal);
     int fd = open(((request*)arg)->pipe_name, O_WRONLY);
-    if (fd < 0) {exit(1);}
+    if (fd < 0) {printf("demos exit\n");exit(1);}
     response_manager response;
     response.code = 4;
     if (tester == 1) {
@@ -412,6 +438,7 @@ void process_manager_create(void* arg, int* index) {
 
 
 void *thread_init(void*  index) {
+    signal(SIGINT, end_program_ctrlC);
     while (1) {
         printf("o valor do index antes de qualquer cena init %d \n", *(int*)index);
         printf("estou no init\n");
@@ -420,7 +447,12 @@ void *thread_init(void*  index) {
         printf("dps do pop ver o noma da box %s\n", ((request*)newtask->request)->box_name);
         printf("valor do index no init %d \n",*((int*)index));
         newtask->function(newtask->request, (int *)index);
+        free(newtask->request);
+        free(newtask);
         printf("SOU UMA THREAD E EU ACABEI\n");
+        if (status == END) {
+            return NULL;
+        }
         //newtask need to be freed
         //while (1)
         // cond var.
@@ -431,6 +463,7 @@ void *thread_init(void*  index) {
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
+    signal(SIGINT, end_program_ctrlC);
     tfs_init(NULL);
     if (mkfifo(argv[1], 0777) < 0) {exit(1);}
     server_boxes = malloc((unsigned int)atoi(argv[2])*sizeof(box));
@@ -453,10 +486,30 @@ int main(int argc, char **argv) {
         if (pthread_mutex_init(&server_boxes[i].box_lock, NULL) == -1) {return -1;}
     }
     while (1) {
+        if (status == GOING_TO_END) {
+            printf("entrou aqui\n");
+            status = END;
+            for (int i = 0; i < size_boxes; i++) {
+                if (server_boxes[i].n_subs > 0) {
+                    pthread_cond_broadcast(&server_boxes[i].cond_var);
+                }
+            }
+            for (int i = 0;i < atoi(argv[2]); i++) {
+                pthread_join(thread_pool[i].thread, NULL);
+            }
+            pcq_destroy(task_queue);
+            free(task_queue);
+            free(thread_pool);
+            free(server_boxes);
+            unlink(argv[1]);
+            printf("O PROGRAMA ENCERROU\n");
+            exit(0);
+        }
         int fd = open(argv[1], O_RDONLY);
         if (fd == -1) {return -1;}
         char buffer[MAX_LINE];
-        while (read(fd, buffer, (sizeof(char)*MAX_LINE)) == 0) {} //MELHOR TIRAR O READ E BLOQUEANTE
+        ssize_t value = read(fd, buffer, (sizeof(char)*MAX_LINE));//MELHOR TIRAR O READ E BLOQUEANTE
+        (void) value;
         printf("li no mbroker\n");
         printf("Aqui e o buffer lido %s\n", buffer);
         //char* end;
@@ -496,10 +549,6 @@ int main(int argc, char **argv) {
         memset(buffer, 0, sizeof(buffer));
         close(fd);
     }
-    for (int i = 0;i < atoi(argv[2]); i++) {
-        pthread_join(thread_pool[i].thread, NULL);
-    }
-    unlink(argv[1]);
     // handle signal to end the program and then join the threads
     fprintf(stderr, "usage: mbroker <pipename>\n");
     WARN("unimplemented"); // TODO: implement

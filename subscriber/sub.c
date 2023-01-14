@@ -30,6 +30,10 @@ void getCTRLC(int s) {
     exit(0);
 }
 
+void ignore_sigpipe(int s) {
+    (void) s;
+
+}
 
 int main(int argc, char **argv) {
     (void)argc;
@@ -38,7 +42,11 @@ int main(int argc, char **argv) {
     request newrequest;
     newrequest.code = 2;
     strcpy(newrequest.pipe_name, argv[2]);
-    strcpy(newrequest.box_name, argv[3]);
+    char box_name_slash[MAX_BOX_NAME];
+    memset(box_name_slash, 0, MAX_BOX_NAME);
+    strcpy(box_name_slash, "/");
+    strcat(box_name_slash, argv[3]);
+    strcpy(newrequest.box_name, box_name_slash);
     char buffer[MAX_LINE];
     writer_stc(&newrequest, newrequest.code, buffer);
     printf("Mensagem a mandar no pipe %s tamanho %ld \n", buffer, strlen(buffer));
@@ -52,10 +60,13 @@ int main(int argc, char **argv) {
     }
     signal(SIGINT, getCTRLC);
     fd_fifo = open(argv[2], O_RDONLY);
-    if (fd < 0) {exit(1);}
+    if (fd_fifo < 0) {exit(1);}
     while (1) {
         char message[MAX_LINE];
-        value = read(fd, message, sizeof(message));
+        value = read(fd_fifo, message, sizeof(message));
+        if (value == -1) {
+            break;
+        }
         counter++;
         value++;
         //strtok(message, "|");
