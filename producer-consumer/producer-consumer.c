@@ -23,6 +23,7 @@ int pcq_create(pc_queue_t* queue, size_t capacity) {
 
 //Check other fucntions
 int pcq_destroy(pc_queue_t *queue) {
+    printf("DESTROY\n");
     pthread_mutex_destroy(&queue->pcq_current_size_lock);
     pthread_mutex_destroy(&queue->pcq_head_lock);
     pthread_mutex_destroy(&queue->pcq_tail_lock);

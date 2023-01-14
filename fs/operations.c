@@ -291,13 +291,18 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     if (to_read > 0) {
         void *block = data_block_get(inode->i_data_block);
         ALWAYS_ASSERT(block != NULL, "tfs_read: data block deleted mid-read");
-
+        if (((char*)(block + file->of_offset))[0] == '\0') {
+            file->of_offset++;
+        }
+        if (memchr(block + file->of_offset, 0, to_read) != NULL) {
+            to_read = (size_t)(memchr(block + file->of_offset, 0, to_read) - (block + file->of_offset));
+        }
         // Perform the actual read
         memcpy(buffer, block + file->of_offset, to_read);
         // The offset associated with the file handle is incremented accordingly
         file->of_offset += to_read;
     }
-
+    printf("final do read\n");
     my_unlock(lock);
     my_unlock(lock_f);
     return (ssize_t)to_read;

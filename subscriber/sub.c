@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
     while (1) {
         char message[MAX_LINE];
         value = read(fd_fifo, message, sizeof(message));
-        if (value == -1) {
+        if (value == 0) {
             break;
         }
         counter++;

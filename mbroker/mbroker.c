@@ -12,15 +12,15 @@
 #include "../utils/server_structures.h"
 #include "../producer-consumer/producer-consumer.h"
 #include <unistd.h>
-#include "../fs1/operations.h"
+#include "../fs/operations.h"
 #include <errno.h>
 #include <signal.h>
-#define  END 2
-#define  GOING_TO_END 1
+#define  END 1
 #define ON_GOING 0
 
 pc_queue_t *task_queue;
-int active_threads = 0;
+int n_threads;
+char* server_pipe;
 pthread_mutex_t thread_lock;
 pthread_cond_t thread_cond;
 box* server_boxes;
@@ -43,9 +43,16 @@ void ignore_signal(int s) {
 void end_program_ctrlC(int s) {
     ssize_t value = write(1, "O PROGRAMA IRÁ ENCERRAR ASSIM QUE POSSÍVEL\n",
     strlen("O PROGRAMA IRÁ ENCERRAR ASSIM QUE POSSÍVEL\n"));
+    status = END;
+    //pcq_destroy(task_queue);
+    free(task_queue);
+    free(thread_pool);
+    free(server_boxes);
+    unlink(server_pipe);
+    printf("O PROGRAMA ENCERROU\n");
+    exit(0);
     (void) value;
     (void) s;
-    signal(SIGINT, end_program_ctrlC);
 }
 
 
@@ -65,7 +72,13 @@ void process_sub(void* arg, int* index) {
         } 
     }
     pthread_mutex_unlock(&box_size_lock);
-    if (tester == 0) {printf("deu exit\n");exit(1);}
+    if (tester == 0) {
+        printf("deu exit\n");
+        int fd = open(((request*)arg)->pipe_name, O_WRONLY);
+        if (fd < 0) {printf("exit2 deu bronca \n");exit(1);}
+        close(fd);
+        return;
+    }
     int fd_tfs = tfs_open(((request*)arg)->box_name, 0);
     if (fd_tfs == -1) {printf("aconteceu algo a abrir\n");exit(1);}
     signal(SIGPIPE, ignore_signal);
@@ -107,6 +120,7 @@ void process_sub(void* arg, int* index) {
             printf("dps do open no sub\n");
             ssize_t bytes = write(fd, pipe_message, sizeof(pipe_message));
             printf("dps do write no sub\n");
+            if (bytes == -1) {
                 if (errno == EPIPE) {
                     printf("entrei no Epipe\n");
                     server_boxes[thread_pool[*index].index].n_subs -=1;
@@ -114,7 +128,7 @@ void process_sub(void* arg, int* index) {
                     pthread_mutex_unlock(&server_boxes[thread_pool[*index].index].box_lock);
                     return;
                 }
-            bytes++;
+            }
             memset(teste, 0, sizeof(teste));
             memset(newmessage.message, 0, (sizeof(char)*1024));
             value = tfs_read(fd_tfs, teste, sizeof(teste));
@@ -153,14 +167,18 @@ void process_pub(void* arg, int* index) {
             tester = 1;
             thread_pool[*index].index = i;
             server_boxes[i].n_pub = 1;
+            server_boxes[i].box_size = 0;
             printf("Achou a caixa no pub\n");
             break;
         } 
     }
     if (tester == 0) {
-        printf("teste exit0\n");  
+        printf("teste exit0\n");
+        int fd = open(((request*)arg)->pipe_name, O_RDONLY);
+        if (fd < 0) {printf("teste exit1\n");exit(1);}
+        close(fd);
         pthread_mutex_unlock(&box_size_lock);
-        exit(1);
+        return;
     }
     pthread_mutex_unlock(&box_size_lock);
     signal(SIGPIPE, ignore_signal);
@@ -258,11 +276,6 @@ void process_manager_list(void* arg, int* index) {
     printf("ANTES DO OPEN \n");
     signal(SIGPIPE, ignore_signal);
     int fd = open(((list_manager_request*)arg)->pipe_name, O_WRONLY);
-            if (errno == EPIPE) {
-                printf("entrei no EPIPE\n");
-                close(fd);
-                return;
-            }
     if (fd < 0) {
         return;
     }
@@ -339,7 +352,7 @@ void process_manager_remove(void* arg, int* index) {
     value++;
     pthread_mutex_unlock(&box_size_lock);
     close(fd);
-    
+    pthread_cond_broadcast(&server_boxes[thread_pool[*index].index].cond_var);
 }
 
 
@@ -465,6 +478,8 @@ int main(int argc, char **argv) {
     (void)argv;
     signal(SIGINT, end_program_ctrlC);
     tfs_init(NULL);
+    n_threads = atoi(argv[2]);
+    server_pipe = argv[1];
     if (mkfifo(argv[1], 0777) < 0) {exit(1);}
     server_boxes = malloc((unsigned int)atoi(argv[2])*sizeof(box));
     size_boxes = atoi(argv[2]);
@@ -486,25 +501,10 @@ int main(int argc, char **argv) {
         if (pthread_mutex_init(&server_boxes[i].box_lock, NULL) == -1) {return -1;}
     }
     while (1) {
-        if (status == GOING_TO_END) {
+        /*if (status == GOING_TO_END) {
             printf("entrou aqui\n");
             status = END;
-            for (int i = 0; i < size_boxes; i++) {
-                if (server_boxes[i].n_subs > 0) {
-                    pthread_cond_broadcast(&server_boxes[i].cond_var);
-                }
-            }
-            for (int i = 0;i < atoi(argv[2]); i++) {
-                pthread_join(thread_pool[i].thread, NULL);
-            }
-            pcq_destroy(task_queue);
-            free(task_queue);
-            free(thread_pool);
-            free(server_boxes);
-            unlink(argv[1]);
-            printf("O PROGRAMA ENCERROU\n");
-            exit(0);
-        }
+        }*/
         int fd = open(argv[1], O_RDONLY);
         if (fd == -1) {return -1;}
         char buffer[MAX_LINE];
