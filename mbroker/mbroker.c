@@ -552,6 +552,5 @@ int main(int argc, char **argv) {
     }
     // handle signal to end the program and then join the threads
     fprintf(stderr, "usage: mbroker <pipename>\n");
-    WARN("unimplemented"); // TODO: implement
     return -1;
 }
