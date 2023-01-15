@@ -55,16 +55,11 @@ int main(int argc, char **argv) {
         if (message[strlen(message) -1] == '\n') {
             message[strlen(message) - 1] = '\0';
         }
-        //strcpy(buffer, "");
         char buffer1[MAX_LINE];
         messages_pipe newmessage;
         newmessage.code = 9;
         strcpy(newmessage.message, message);
         writer_stc(&newmessage, newmessage.code, buffer1);
-        printf("mensagem serializada no pub %s\n",buffer1);
-        uint8_t teste;
-        memcpy(&teste, buffer1, sizeof(teste));
-        printf("valor do code dps do writer no pub %d \n", teste);
         value = write(fd, buffer1, sizeof(buffer1));
         if (errno == EPIPE) {
             break;

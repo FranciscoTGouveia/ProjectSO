@@ -4,5 +4,4 @@
 
 void* reader_stc(char buffer[MAX_LINE]);
 
-
 #endif
