@@ -4,45 +4,45 @@
 #include <string.h>
 #include <stdlib.h>
 
-
-
-void writer_stc_request(request* new_request, char buffer[MAX_LINE]) {
+void writer_stc_request(request *new_request, char buffer[MAX_LINE]) {
     size_t offset = 0;
     memcpy(buffer, &new_request->code, sizeof(uint8_t));
     offset += sizeof(uint8_t);
-    memcpy(buffer + offset, new_request->pipe_name, sizeof(new_request->pipe_name));
-    offset += (sizeof(char)*MAX_PIPE_NAME);
-    memcpy(buffer + offset, new_request->box_name, sizeof(new_request->box_name));
+    memcpy(buffer + offset, new_request->pipe_name,
+           sizeof(new_request->pipe_name));
+    offset += (sizeof(char) * MAX_PIPE_NAME);
+    memcpy(buffer + offset, new_request->box_name,
+           sizeof(new_request->box_name));
 }
 
-
-
-void writer_stc_response_manager(response_manager* new_request, char buffer[MAX_LINE]) {
+void writer_stc_response_manager(response_manager *new_request,
+                                 char buffer[MAX_LINE]) {
     size_t offset = 0;
     memcpy(buffer, &new_request->code, sizeof(uint8_t));
     offset += sizeof(uint8_t);
     memcpy(buffer + offset, &new_request->return_code, sizeof(int32_t));
     offset += sizeof(int32_t);
-    memcpy(buffer + offset, new_request->error_message, sizeof(new_request->error_message));
+    memcpy(buffer + offset, new_request->error_message,
+           sizeof(new_request->error_message));
 }
 
-
-
-void writer_stc_list_request(list_manager_request* new_request, char buffer[MAX_LINE]) {
-    memcpy(buffer,&new_request->code, sizeof(uint8_t));
-    memcpy(buffer + sizeof(uint8_t), new_request->pipe_name, sizeof(new_request->pipe_name));
+void writer_stc_list_request(list_manager_request *new_request,
+                             char buffer[MAX_LINE]) {
+    memcpy(buffer, &new_request->code, sizeof(uint8_t));
+    memcpy(buffer + sizeof(uint8_t), new_request->pipe_name,
+           sizeof(new_request->pipe_name));
 }
 
-
-
-void writer_stc_list_response(list_manager_response* new_request, char buffer[MAX_LINE]) {
+void writer_stc_list_response(list_manager_response *new_request,
+                              char buffer[MAX_LINE]) {
     size_t offset = 0;
     memcpy(buffer, &new_request->code, sizeof(uint8_t));
     offset += sizeof(uint8_t);
     memcpy(buffer + offset, &new_request->last, sizeof(uint8_t));
     offset += sizeof(uint8_t);
-    memcpy(buffer + offset, new_request->box_name, sizeof(new_request->box_name));
-    offset += (sizeof(char)*MAX_BOX_NAME);
+    memcpy(buffer + offset, new_request->box_name,
+           sizeof(new_request->box_name));
+    offset += (sizeof(char) * MAX_BOX_NAME);
     memcpy(buffer + offset, &new_request->box_size, sizeof(uint64_t));
     offset += sizeof(uint64_t);
     memcpy(buffer + offset, &new_request->n_pubs, sizeof(uint64_t));
@@ -50,13 +50,13 @@ void writer_stc_list_response(list_manager_response* new_request, char buffer[MA
     memcpy(buffer + offset, &new_request->n_subs, sizeof(uint64_t));
 }
 
-
-void writer_stc_message(messages_pipe* new_request, char buffer[MAX_LINE]) {
-   memcpy(buffer, &new_request->code, sizeof(uint8_t));
-   memcpy(buffer + sizeof(uint8_t), new_request->message, sizeof(new_request->message));
+void writer_stc_message(messages_pipe *new_request, char buffer[MAX_LINE]) {
+    memcpy(buffer, &new_request->code, sizeof(uint8_t));
+    memcpy(buffer + sizeof(uint8_t), new_request->message,
+           sizeof(new_request->message));
 }
 
-void writer_stc(void* new_request, uint8_t code_pipe, char buffer[MAX_LINE]) {
+void writer_stc(void *new_request, uint8_t code_pipe, char buffer[MAX_LINE]) {
     memset(buffer, 0, MAX_LINE);
     switch (code_pipe) {
         case 4:
@@ -74,7 +74,7 @@ void writer_stc(void* new_request, uint8_t code_pipe, char buffer[MAX_LINE]) {
             writer_stc_message(new_request, buffer);
             break;
         default:
-            writer_stc_request(new_request,buffer);
+            writer_stc_request(new_request, buffer);
             break;
     }
 }

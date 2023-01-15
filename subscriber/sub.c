@@ -12,11 +12,11 @@
 #include <signal.h>
 
 int fd;
-char* pipe_name;
+char *pipe_name;
 int counter = 0;
 
 void getCTRLC(int s) {
-    (void) s;
+    (void)s;
     signal(SIGINT, getCTRLC);
     char buffer[100];
     int value = snprintf(buffer, sizeof(buffer) - 1, "%d", counter);
@@ -28,7 +28,7 @@ void getCTRLC(int s) {
 
 int main(int argc, char **argv) {
     if (argc != 4) {
-    fprintf(stderr, "usage: sub <register_pipe_name> <box_name>\n");
+        fprintf(stderr, "usage: sub <register_pipe_name> <box_name>\n");
     }
     pipe_name = argv[2];
     request newrequest;
@@ -49,9 +49,10 @@ int main(int argc, char **argv) {
     fd = my_open(argv[2], O_RDONLY);
     while (1) {
         char message[MAX_LINE];
+        memset(message, 0, MAX_LINE);
         if (read(fd, message, sizeof(message)) == 0) break;
         counter++;
-        messages_pipe* new_message = reader_stc(message);
+        messages_pipe *new_message = reader_stc(message);
         fprintf(stdout, "%s\n", new_message->message);
         free(new_message);
     }

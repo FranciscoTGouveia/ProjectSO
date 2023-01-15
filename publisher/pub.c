@@ -12,12 +12,10 @@
 #include <errno.h>
 #define MAX_MESSAGE 1024
 
-
 void ignore_signal(int s) {
-    (void) s;
+    (void)s;
     signal(SIGPIPE, ignore_signal);
 }
-
 
 int main(int argc, char **argv) {
     if (argc != 4) {
@@ -38,7 +36,7 @@ int main(int argc, char **argv) {
     if (write(fd, buffer, sizeof(buffer)) < 0) {
         my_close(fd);
         exit(1);
-    } 
+    }
     my_close(fd);
     signal(SIGPIPE, ignore_signal);
     fd = my_open(argv[2], O_WRONLY);
@@ -50,15 +48,16 @@ int main(int argc, char **argv) {
             my_unlink(argv[2]);
             return 0;
         }
-        if (message[strlen(message)-1] == '\n') {
-            message[strlen(message)-1] = '\0';
+        if (message[strlen(message) - 1] == '\n') {
+            message[strlen(message) - 1] = '\0';
         }
         char server_request[MAX_LINE];
         messages_pipe new_message;
         new_message.code = 9;
         strcpy(new_message.message, message);
         writer_stc(&new_message, new_message.code, server_request);
-        if (write(fd, server_request, sizeof(server_request)) < 0) { // Write the request to mbroker
+        if (write(fd, server_request, sizeof(server_request)) <
+            0) { // Write the request to mbroker
             if (errno == EPIPE) {
                 break;
             }

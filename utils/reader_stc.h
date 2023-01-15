@@ -2,6 +2,6 @@
 #define __UTILS_READER_STC__
 #include "pipeflow.h"
 
-void* reader_stc(char buffer[MAX_LINE]);
+void *reader_stc(char buffer[MAX_LINE]);
 
 #endif

@@ -17,7 +17,7 @@ typedef struct {
     int d_inumber;
 } dir_entry_t;
 
-typedef enum { T_FILE, T_DIRECTORY, T_SOFT_LINK} inode_type;
+typedef enum { T_FILE, T_DIRECTORY, T_SOFT_LINK } inode_type;
 /**
  * Inode
  */
@@ -48,7 +48,7 @@ size_t state_block_size(void);
 int inode_create(inode_type n_type);
 void inode_delete(int inumber);
 inode_t *inode_get(int inumber);
-pthread_rwlock_t* inode_lock_get(int inumber);
+pthread_rwlock_t *inode_lock_get(int inumber);
 int clear_dir_entry(inode_t *inode, char const *sub_name);
 int add_dir_entry(inode_t *inode, char const *sub_name, int sub_inumber);
 int find_in_dir(inode_t const *inode, char const *sub_name);
@@ -61,9 +61,9 @@ int add_to_open_file_table(int inumber, size_t offset);
 void remove_from_open_file_table(int fhandle);
 open_file_entry_t *get_open_file_entry(int fhandle);
 int get_path_recursive(int inumber);
-void my_r_lock(pthread_rwlock_t* lock);
-void my_w_lock(pthread_rwlock_t* lock);
-void my_unlock(pthread_rwlock_t* lock);
+void my_r_lock(pthread_rwlock_t *lock);
+void my_w_lock(pthread_rwlock_t *lock);
+void my_unlock(pthread_rwlock_t *lock);
 pthread_rwlock_t *get_open_file_lock(int fhandle);
 
 #endif // STATE_H
