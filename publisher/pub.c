@@ -15,11 +15,14 @@
 
 void ignore_signal(int s) {
     (void) s;
+    signal(SIGPIPE, ignore_signal);
 }
 
 
 int main(int argc, char **argv) {
-    (void)argc;
+    if (argc != 4) {
+        fprintf(stderr, "usage: pub <register_pipe_name> <box_name>\n");
+    }
     request newrequest;
     newrequest.code = 1;
     strcpy(newrequest.pipe_name, argv[2]);
@@ -56,12 +59,9 @@ int main(int argc, char **argv) {
         strcpy(new_message.message, message);
         writer_stc(&new_message, new_message.code, server_request);
         if (write(fd, server_request, sizeof(server_request)) < 0) { // Write the request to mbroker
-            my_close(fd);
-            my_unlink(argv[2]);
-            exit(1);
-        }
-        if (errno == EPIPE) {
-            break;
+            if (errno == EPIPE) {
+                break;
+            }
         }
     }
     my_close(fd);

@@ -5,7 +5,6 @@
 #include "../utils/writer_stc.h"
 #include "../utils/safety_mechanisms.h"
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
@@ -30,7 +29,6 @@ void manager_request(void* newrequest,uint8_t code_pipe ,char* register_pipe) {
     char buffer[MAX_LINE];
     int fd;
     writer_stc(newrequest, code_pipe, buffer);
-    
     fd = my_open(register_pipe, O_WRONLY);
     my_write(fd, buffer, sizeof(buffer));
     my_close(fd);
@@ -43,14 +41,13 @@ void manager_create_remove(request* newrequest, char* pipe, char* register_pipe)
     my_mkfifo(pipe, 0777);
     fd = my_open(pipe, O_RDONLY);
     char message[MAX_LINE];
-    my_read(fd, message, sizeof(message) < 0);
+    my_read(fd, message, sizeof(message));
     response_manager* response = reader_stc(message);
     if (response->return_code == -1) {
         fprintf(stdout, "ERROR %s\n", response->error_message);
     } else {
         fprintf(stdout, "OK\n");
     }
-    // Is this free really necessary ???
     free(response);
     my_close(fd);
     my_unlink(pipe);
@@ -95,7 +92,6 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
         }
     }
     my_close(fd);
-    //here we sort the array
     qsort(list_of_boxes, (size_t)(counter+1), sizeof(list_manager_response*), compare_func);
     for (int i = 0; i <= counter; i++) {
         fprintf(stdout, "%s %zu %zu %zu\n", list_of_boxes[i]->box_name, 
@@ -107,7 +103,6 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
     free(list_of_boxes);
     my_unlink(pipe);
 }
-
 
 
 int main(int argc, char **argv) {

@@ -17,24 +17,19 @@ int counter = 0;
 
 void getCTRLC(int s) {
     (void) s;
+    signal(SIGINT, getCTRLC);
     char buffer[100];
-    // Why is this here ???
     int value = snprintf(buffer, sizeof(buffer) - 1, "%d", counter);
     my_write(STDOUT_FILENO, buffer, (size_t)value);
     my_close(fd);
-    // Why is this here ???
-    signal(SIGINT, getCTRLC);
     my_unlink(pipe_name);
     exit(0);
 }
 
-// Não se devia ligar o signal SIGPIPE a isto ???
-void ignore_sigpipe(int s) {
-    (void) s;
-}
-
 int main(int argc, char **argv) {
-    (void)argc;
+    if (argc != 4) {
+    fprintf(stderr, "usage: sub <register_pipe_name> <box_name>\n");
+    }
     pipe_name = argv[2];
     request newrequest;
     newrequest.code = 2;
@@ -56,9 +51,9 @@ int main(int argc, char **argv) {
         char message[MAX_LINE];
         if (read(fd, message, sizeof(message)) == 0) break;
         counter++;
-        messages_pipe* newmesage = reader_stc(message);
-        fprintf(stdout, "%s\n", newmesage->message);
-        free(newmesage);
+        messages_pipe* new_message = reader_stc(message);
+        fprintf(stdout, "%s\n", new_message->message);
+        free(new_message);
     }
     my_close(fd);
     my_unlink(pipe_name);

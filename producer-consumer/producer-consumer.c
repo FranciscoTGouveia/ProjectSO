@@ -23,7 +23,6 @@ int pcq_create(pc_queue_t* queue, size_t capacity) {
 
 //Check other fucntions
 int pcq_destroy(pc_queue_t *queue) {
-    printf("DESTROY\n");
     my_mutex_destroy(&queue->pcq_current_size_lock);
     my_mutex_destroy(&queue->pcq_head_lock);
     my_mutex_destroy(&queue->pcq_tail_lock);
@@ -61,26 +60,19 @@ int pcq_enqueue(pc_queue_t *queue, void* elem) {
     my_mutex_unlock(&queue->pcq_current_size_lock);
     my_mutex_unlock(&queue->pcq_pusher_condvar_lock);
     my_cond_signal(&queue->pcq_popper_condvar);
-    printf("Fim do push\n");
-    printf("Ainda dentro do push saber o nome da box %s\n", ((request*)((task*)queue->pcq_buffer[queue->pcq_head])->request)->box_name);
     return 0;        
 }
 
 
 void* pcq_dequeue(pc_queue_t* queue) {
     my_mutex_lock(&queue->pcq_popper_condvar_lock);
-    printf("Entramos no pop\n");
     while (queue->pcq_current_size == 0) {
-        printf("Estamos presos no pop\n");
         my_cond_wait(&queue->pcq_popper_condvar,
          &queue->pcq_popper_condvar_lock);
     }
     my_mutex_lock(&queue->pcq_current_size_lock);
     my_mutex_lock(&queue->pcq_tail_lock);
-    printf("Dentro do pop a tail é %ld \n", queue->pcq_tail);
     task* removed_task = (task*) queue->pcq_buffer[queue->pcq_tail];
-
-    printf("dentro do pop ver o nome da box %s \n", ((request*)removed_task->request)->box_name);
     if (queue->pcq_tail != queue->pcq_head) {
         queue->pcq_tail--;
     }
