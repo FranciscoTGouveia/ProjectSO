@@ -1,4 +1,3 @@
-#ifndef __UTILS_SERVER_STRCUTURES__
 #define __UTILS_SERVER_STRCUTURES__
 
 #include <sys/types.h>
@@ -18,5 +17,3 @@ void my_cond_init(pthread_cond_t* cond, pthread_condattr_t* attr);
 void my_cond_signal(pthread_cond_t* cond);
 void my_cond_wait(pthread_cond_t* cond, pthread_mutex_t* mutex);
 void my_cond_destroy(pthread_cond_t* cond);
-
-#endif
