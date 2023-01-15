@@ -19,8 +19,6 @@ static void print_usage() {
 }
 
 
-
-
 int compare_func(const void*a, const void* b) {
     list_manager_response* first = *(list_manager_response**)a;
     list_manager_response* second = *(list_manager_response**)b;
@@ -32,19 +30,20 @@ void manager_request(void* newrequest,uint8_t code_pipe ,char* register_pipe) {
     char buffer[MAX_LINE];
     int fd;
     writer_stc(newrequest, code_pipe, buffer);
-    if ((fd = open(register_pipe, O_WRONLY)) < 0) exit(1);
-    if (write(fd, buffer, sizeof(buffer)) < 0) exit(1);
-    close(fd);
+    
+    fd = my_open(register_pipe, O_WRONLY);
+    my_write(fd, buffer, sizeof(buffer));
+    my_close(fd);
 }
 
 
 void manager_create_remove(request* newrequest, char* pipe, char* register_pipe) {
     manager_request(newrequest,newrequest->code,register_pipe);
-    int fd_fifo, fd;
-    if ((fd_fifo = mkfifo(pipe, 0777)) < 0) exit(1);
-    if ((fd = open(pipe, O_RDONLY)) < 0) exit(1);
+    int fd;
+    my_mkfifo(pipe, 0777);
+    fd = my_open(pipe, O_RDONLY);
     char message[MAX_LINE];
-    if (read(fd, message, sizeof(message) < 0)) exit(1);
+    my_read(fd, message, sizeof(message) < 0);
     response_manager* response = reader_stc(message);
     if (response->return_code == -1) {
         fprintf(stdout, "ERROR %s\n", response->error_message);
@@ -53,20 +52,20 @@ void manager_create_remove(request* newrequest, char* pipe, char* register_pipe)
     }
     // Is this free really necessary ???
     free(response);
-    if (close(fd) == -1) exit(1);
-    unlink(pipe);
+    my_close(fd);
+    my_unlink(pipe);
 }
 
 
 
 void manager_list(list_manager_request* newrequest, char* pipe, char*register_pipe) {
     manager_request(newrequest, newrequest->code, register_pipe);
-    int fd_fifo, fd;
-    if ((fd_fifo = mkfifo(pipe, 0777)) < 0) exit(1);
+    int fd;
+    my_mkfifo(pipe, 0777);
     size_t size = 100;
     int counter = 0;
     list_manager_response** list_of_boxes = my_malloc(size*sizeof(list_manager_response*));
-    if ((fd = open(pipe, O_RDONLY)) < 0 ) exit(1);
+    fd = my_open(pipe, O_RDONLY);
     while (1) {
         // Will keep on reading through, until mbroker stops sending boxes list responses
         char message[MAX_LINE];
@@ -78,7 +77,8 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
                 fprintf(stdout, "NO BOXES FOUND\n");
                 free(list_of_boxes[counter]);
                 free(list_of_boxes);
-                unlink(pipe);
+                my_close(fd);
+                my_unlink(pipe);
                 return;
             }
             break;
@@ -87,9 +87,14 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
         if (counter == size) { // Resize the array of boxes
             size *= 2;
             list_of_boxes = realloc(list_of_boxes, size*sizeof(list_manager_response*));
+            if (list_of_boxes == NULL) {
+                my_close(fd);
+                my_unlink(pipe);
+                exit(1);
+            }
         }
     }
-    if (close(fd) == -1) exit(1);
+    my_close(fd);
     //here we sort the array
     qsort(list_of_boxes, (size_t)(counter+1), sizeof(list_manager_response*), compare_func);
     for (int i = 0; i <= counter; i++) {
@@ -100,8 +105,7 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
         free(list_of_boxes[i]);
     }
     free(list_of_boxes);
-    close(fd_fifo);
-    unlink(pipe);
+    my_unlink(pipe);
 }
 
 

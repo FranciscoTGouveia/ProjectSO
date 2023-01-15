@@ -32,7 +32,10 @@ int main(int argc, char **argv) {
     writer_stc(&newrequest, newrequest.code, buffer);
     my_mkfifo(argv[2], 0777);
     int fd = my_open(argv[1], O_WRONLY);
-    my_write(fd, buffer, sizeof(buffer));
+    if (write(fd, buffer, sizeof(buffer)) < 0) {
+        my_close(fd);
+        exit(1);
+    } 
     my_close(fd);
     signal(SIGPIPE, ignore_signal);
     fd = my_open(argv[2], O_WRONLY);
@@ -52,7 +55,11 @@ int main(int argc, char **argv) {
         new_message.code = 9;
         strcpy(new_message.message, message);
         writer_stc(&new_message, new_message.code, server_request);
-        my_write(fd, server_request, sizeof(server_request)); // Write the request to mbroker
+        if (write(fd, server_request, sizeof(server_request)) < 0) { // Write the request to mbroker
+            my_close(fd);
+            my_unlink(argv[2]);
+            exit(1);
+        }
         if (errno == EPIPE) {
             break;
         }
