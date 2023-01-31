@@ -400,8 +400,9 @@ void process_manager_unlock(void* arg,int* index) {
     int tester = 0;
     for (int i = 0; i < size_boxes; i++) {
         if (strcmp(server_boxes[i].box_name, ((request*)arg)->box_name) == 0) {
-            if (strcmp(server_boxes[i].box_password, ((request*)arg)->box_password) != 0){
+            if (strcmp(server_boxes[i].box_password, ((request*)arg)->box_password) != 0){ 
                 tester = -1;
+                break;
             }
             tester = 1;
             thread_pool[*index].index = i;
