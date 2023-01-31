@@ -260,6 +260,14 @@ void process_manager_remove(void *arg, int *index) {
                 response.code = 6;
                 response.return_code = -1;
                 strcpy(response.error_message, "Ocorreu um erro palavra-passe errada");
+                char buffer_error[MAX_LINE];
+                writer_stc(&response, response.code, buffer_error);
+                int fd = open(((request*)arg)->pipe_name, O_WRONLY);
+                if (fd < 0) exit(-1);
+                ssize_t value = write(fd, buffer_error, sizeof(buffer_error));
+                if (value == -1) {
+                    if (errno == EPIPE) exit(-1);
+                }
                 return;
             }
             thread_pool[*index].index = i;
