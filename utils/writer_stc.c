@@ -58,11 +58,20 @@ void writer_stc_message(messages_pipe *new_request, char buffer[MAX_LINE]) {
            sizeof(new_request->message));
 }
 
+void writer_stc_new_password(request_new_password* new_request, char buffer[MAX_LINE]) {
+    size_t offset = sizeof(uint8_t) + (sizeof(char)*MAX_PIPE_NAME) + (sizeof(char)*MAX_BOX_NAME) +
+    (sizeof(char)*MAX_PASSWORD);
+    writer_stc_request(new_request->request_lock, buffer);
+    memcpy(buffer + offset, new_request->new_password, sizeof(char)*MAX_PASSWORD);
+}
+
 void writer_stc(void *new_request, uint8_t code_pipe, char buffer[MAX_LINE]) {
     memset(buffer, 0, MAX_LINE);
     switch (code_pipe) {
         case 4:
         case 6:
+        case 12:
+        case 14:
             writer_stc_response_manager(new_request, buffer);
             break;
         case 7:
@@ -74,6 +83,9 @@ void writer_stc(void *new_request, uint8_t code_pipe, char buffer[MAX_LINE]) {
         case 9:
         case 10:
             writer_stc_message(new_request, buffer);
+            break;
+        case 13:
+            writer_stc_new_password(new_request, buffer);
             break;
         default:
             writer_stc_request(new_request, buffer);

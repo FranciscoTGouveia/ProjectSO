@@ -68,12 +68,25 @@ messages_pipe *reader_stc_message(uint8_t code_pipe, char buffer[MAX_LINE]) {
     return message_request;
 }
 
+request_new_password* reader_stc_new_password(uint8_t code_pipe, char buffer[MAX_LINE]) {
+    request_new_password* request_password = my_malloc(sizeof(request_new_password));
+    request* request_password_helper = reader_stc_request(code_pipe, buffer);
+    memcpy(request_password->request_lock, request_password_helper, sizeof(request));
+    size_t offset = sizeof(uint8_t) + (sizeof(char)*MAX_PIPE_NAME) + (sizeof(char)*MAX_BOX_NAME)
+    + (sizeof(char)*MAX_PASSWORD);
+    memcpy(request_password->new_password, buffer + offset, sizeof(char)*MAX_PASSWORD);
+    return request_password;
+}
+
+
 void *reader_stc(char buffer[MAX_LINE]) {
     void *message;
     uint8_t code_pipe;
     memcpy(&code_pipe, buffer, sizeof(uint8_t));
     switch (code_pipe) {
         case 4:
+            message = reader_stc_response_manager(code_pipe, buffer);
+            break;
         case 6:
             message = reader_stc_response_manager(code_pipe, buffer);
             break;
@@ -84,8 +97,19 @@ void *reader_stc(char buffer[MAX_LINE]) {
             message = reader_stc_list_response(code_pipe, buffer);
             break;
         case 9:
+            message = reader_stc_message(code_pipe, buffer);
+            break;
         case 10:
             message = reader_stc_message(code_pipe, buffer);
+            break;
+        case 12:
+            message = reader_stc_response_manager(code_pipe, buffer) ;
+            break;
+        case 13:
+            message = reader_stc_new_password(code_pipe, buffer);
+            break;
+        case 14:
+            message = reader_stc_response_manager(code_pipe, buffer);
             break;
         default:
             message = reader_stc_request(code_pipe, buffer);

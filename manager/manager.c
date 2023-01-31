@@ -11,6 +11,7 @@
 #define CREATE "create"
 #define REMOVE "remove"
 #define UNLOCK "unlock"
+#define LOCK "lock"
 static void print_usage() {
     fprintf(stderr, "usage: \n"
                     "   manager <register_pipe_name> create <box_name>\n"
@@ -34,9 +35,14 @@ void manager_request(void *newrequest, uint8_t code_pipe,
     my_close(fd);
 }
 
-void manager_create_remove(request *newrequest, char *pipe,
-                           char *register_pipe) {
-    manager_request(newrequest, newrequest->code, register_pipe);
+void manager_create_remove(void *newrequest, char *pipe,
+                           char *register_pipe, uint8_t code_pipe) {
+    if (code_pipe != 13){
+        manager_request(newrequest, ((request*)newrequest)->code, register_pipe);
+    } else {
+        manager_request(newrequest, 
+        ((request_new_password*)newrequest)->request_lock->code, register_pipe);
+    }
     int fd;
     my_mkfifo(pipe, 0777);
     fd = my_open(pipe, O_RDONLY);
@@ -52,6 +58,7 @@ void manager_create_remove(request *newrequest, char *pipe,
     my_close(fd);
     my_unlink(pipe);
 }
+
 
 void manager_list(list_manager_request *newrequest, char *pipe,
                   char *register_pipe) {
@@ -109,7 +116,7 @@ void manager_list(list_manager_request *newrequest, char *pipe,
 }
 
 int main(int argc, char **argv) {
-    if (argc == 5 || argc == 6) { // Creation or deletion of a box
+    if (argc == 5 || argc == 6 || argc == 7) { // Creation or deletion of a box
         request newrequest;
         strcpy(newrequest.pipe_name, argv[2]);
         char box_name_slash[MAX_BOX_NAME];
@@ -123,7 +130,7 @@ int main(int argc, char **argv) {
             strcpy(newrequest.box_password, password);
         } else {
             memset(newrequest.box_password, 0, MAX_PASSWORD);
-            strcpy(newrequest.box_password, argv[argc-1]);
+            strcpy(newrequest.box_password, argv[4]);
         }
         if (strcmp(argv[3], CREATE) == 0) {
             newrequest.code = 3;
@@ -131,8 +138,21 @@ int main(int argc, char **argv) {
             newrequest.code = 5;
         } else if (strcmp(argv[3], UNLOCK) == 0) {
             newrequest.code = 11;
+        } else if (strcmp(argv[3], LOCK) == 0) {
+            newrequest.code = 13;
+            request_new_password new_password;
+            if (argc == 6) {
+                strcpy(new_password.new_password, newrequest.box_password);
+                memset(newrequest.box_password, 0, MAX_PASSWORD);
+            } else {
+                strcpy(new_password.new_password, argv[5]);
+            }
+            new_password.request_lock = &newrequest;
+            manager_create_remove(&new_password, argv[2], argv[1], 
+            new_password.request_lock->code);
+            return 0;
         }
-        manager_create_remove(&newrequest, argv[2], argv[1]);
+        manager_create_remove(&newrequest, argv[2], argv[1],newrequest.code);
     } else if (argc == 4) { // Listing of all boxes
         list_manager_request newrequest;
         strcpy(newrequest.pipe_name, argv[argc - 2]);

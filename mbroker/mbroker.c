@@ -432,7 +432,43 @@ void process_manager_unlock(void* arg,int* index) {
     close(fd);
 }
 
+void process_manager_lock(void* arg, int* index) {
+    my_mutex_lock(&box_size_lock);
+    int tester = 0;
+    for (int i = 0; i < size_boxes; i++) {
+        if (strcmp(server_boxes[i].box_name, ((request_new_password*)arg)->request_lock->box_name) == 0) {
+            if (strcmp(server_boxes[i].box_password, ((request_new_password*)arg)->request_lock->box_password) != 0){ 
+                tester = -1;
+                break;
+            }
+            tester = 1;
+            thread_pool[*index].index = i;
+            strcpy(server_boxes[i].box_password, ((request_new_password*)arg)->new_password);
+            break;
+        }
+    }
+    my_mutex_unlock(&box_size_lock);
+    int fd = open(((request_new_password*)arg)->request_lock->pipe_name, O_WRONLY);
+    if (fd < 0) return;
+    response_manager response;
+    response.code = 14;
+    if (tester == 1) {
+        response.return_code = 0;
+        memset(response.error_message, 0, 1024);
+    } else if (tester == 0) {
+        response.return_code = -1;
+        strcpy(response.error_message, "Ocorreu um erro: não existe a box");
+    } else {
+        response.return_code = -1;
+        strcpy(response.error_message, "Ocorreu um erro: palavra-passe errada");
+    }
+    char buffer[MAX_LINE];
+    writer_stc(&response, response.code, buffer);
+    ssize_t value = write(fd, buffer, sizeof(buffer));
+    if (value != sizeof(buffer)) return;
+    close(fd);
 
+}
 
 
 void *thread_init(void *index) {

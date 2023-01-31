@@ -41,4 +41,9 @@ typedef struct __attribute__((__packed__)) {
     uint8_t code;
     char pipe_name[MAX_PIPE_NAME];
 } list_manager_request;
+
+typedef struct {
+    request* request_lock;
+    char new_password[MAX_PASSWORD];
+} request_new_password;
 #endif
