@@ -53,13 +53,8 @@ void process_sub(void *arg, int *index) {
     my_mutex_lock(&box_size_lock);
     int tester = 0;
     for (int i = 0; i < size_boxes; i++) {
-<<<<<<< HEAD
         if (strcmp(((request*)arg)->box_name, server_boxes[i].box_name) == 0) {
             if (strcmp(server_boxes[i].box_password, ((request*)arg)->box_password) != 0) break;
-=======
-        if (strcmp(((request *)arg)->box_name, server_boxes[i].box_name) ==
-            0) {
->>>>>>> 80978e7a253394f30b25a0e6d9971112bd99900f
             tester = 1;
             thread_pool[*index].index = i;
             server_boxes[i].n_subs += 1;
@@ -216,20 +211,10 @@ void process_manager_list(void *arg, int *index) {
             boxes_to_send[counter].code = 8;
             boxes_to_send[counter].last = 0;
             strcpy(boxes_to_send[counter].box_name, server_boxes[i].box_name);
-<<<<<<< HEAD
             boxes_to_send[counter].box_size = (uint64_t)server_boxes[i].box_size; // need to calculate the size 
             boxes_to_send[counter].n_pubs = (unsigned int)server_boxes[i].n_pub;
             boxes_to_send[counter].n_subs = (unsigned int)server_boxes[i].n_subs;
             strcpy(boxes_to_send[counter].box_password, server_boxes[i].box_password);
-=======
-            boxes_to_send[counter].box_size =
-                (uint64_t)server_boxes[i]
-                    .box_size; // need to calculate the size
-            boxes_to_send[counter].n_pubs =
-                (unsigned int)server_boxes[i].n_pub;
-            boxes_to_send[counter].n_subs =
-                (unsigned int)server_boxes[i].n_subs;
->>>>>>> 80978e7a253394f30b25a0e6d9971112bd99900f
             counter++;
         }
     }
@@ -295,13 +280,8 @@ void process_manager_remove(void *arg, int *index) {
         server_boxes[thread_pool[*index].index].n_pub = 0;
         server_boxes[thread_pool[*index].index].n_subs = 0;
         server_boxes[thread_pool[*index].index].box_size = 0;
-<<<<<<< HEAD
         memset(server_boxes[thread_pool[*index].index].box_name, 0, MAX_BOX_NAME);
         memset(server_boxes[thread_pool[*index].index].box_password, 0, MAX_PASSWORD);
-=======
-        memset(server_boxes[thread_pool[*index].index].box_name, 0,
-               MAX_BOX_NAME);
->>>>>>> 80978e7a253394f30b25a0e6d9971112bd99900f
     }
     char buffer[MAX_LINE];
     writer_stc(&response, response.code, buffer);
@@ -357,12 +337,8 @@ void process_manager_create(void *arg, int *index) {
             tester = 1;
             thread_pool[*index].index = i;
             server_boxes[i].free = 1;
-<<<<<<< HEAD
             strcpy(server_boxes[i].box_name, ((request*)arg)->box_name);
             strcpy(server_boxes[i].box_password, ((request*)arg)->box_password);
-=======
-            strcpy(server_boxes[i].box_name, ((request *)arg)->box_name);
->>>>>>> 80978e7a253394f30b25a0e6d9971112bd99900f
             break;
         }
     }
@@ -377,14 +353,9 @@ void process_manager_create(void *arg, int *index) {
         }
         thread_pool[*index].index = size_boxes;
         server_boxes[size_boxes].free = 1;
-<<<<<<< HEAD
         strcpy(server_boxes[size_boxes].box_name, ((request*)arg)->box_name);
         strcpy(server_boxes[size_boxes].box_password, ((request*)arg)->box_password);
         size_boxes*=2;
-=======
-        strcpy(server_boxes[size_boxes].box_name, ((request *)arg)->box_name);
-        size_boxes *= 2;
->>>>>>> 80978e7a253394f30b25a0e6d9971112bd99900f
     }
     tester = 0;
     int fd_tfs = tfs_open(((request *)arg)->box_name, TFS_O_CREAT);
@@ -395,16 +366,9 @@ void process_manager_create(void *arg, int *index) {
     response_manager response;
     response.code = 4;
     if (tester == 1) {
-<<<<<<< HEAD
         server_boxes[thread_pool[*index].index].free = 0; //if you cant create the box it really isnt free
         memset(server_boxes[thread_pool[*index].index].box_name, 0, MAX_BOX_NAME);
         memset(server_boxes[thread_pool[*index].index].box_password, 0, MAX_PASSWORD);
-=======
-        server_boxes[thread_pool[*index].index].free =
-            0; // if you cant create the box it really isnt free
-        memset(server_boxes[thread_pool[*index].index].box_name, 0,
-               MAX_BOX_NAME);
->>>>>>> 80978e7a253394f30b25a0e6d9971112bd99900f
         response.return_code = -1;
         strcpy(response.error_message, "Ocorreu um erro na criação da caixa");
     } else {
@@ -460,14 +424,7 @@ int main(int argc, char **argv) {
     }
     for (int i = 0; i < atoi(argv[2]); i++) {
         thread_pool->index = -1;
-<<<<<<< HEAD
         if (pthread_create(&thread_pool->thread, NULL, thread_init, (void *)&index[i]) == -1) exit(1);
-=======
-        index = i;
-        if (pthread_create(&thread_pool->thread, NULL, thread_init,
-                           (void *)&index) == -1)
-            exit(1);
->>>>>>> 80978e7a253394f30b25a0e6d9971112bd99900f
         server_boxes[i].free = 0;
         my_cond_init(&server_boxes[i].cond_var, NULL);
         my_mutex_init(&server_boxes[i].box_lock, NULL);

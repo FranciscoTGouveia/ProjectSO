@@ -8,19 +8,11 @@ void writer_stc_request(request *new_request, char buffer[MAX_LINE]) {
     size_t offset = 0;
     memcpy(buffer, &new_request->code, sizeof(uint8_t));
     offset += sizeof(uint8_t);
-<<<<<<< HEAD
     memcpy(buffer + offset, new_request->pipe_name, sizeof(new_request->pipe_name));
     offset += (sizeof(char)*MAX_PIPE_NAME);
     memcpy(buffer + offset, new_request->box_name, sizeof(new_request->box_name));
     offset += (sizeof(char)*MAX_BOX_NAME);
     memcpy(buffer + offset, new_request->box_password, sizeof(new_request->box_password));
-=======
-    memcpy(buffer + offset, new_request->pipe_name,
-           sizeof(new_request->pipe_name));
-    offset += (sizeof(char) * MAX_PIPE_NAME);
-    memcpy(buffer + offset, new_request->box_name,
-           sizeof(new_request->box_name));
->>>>>>> 80978e7a253394f30b25a0e6d9971112bd99900f
 }
 
 void writer_stc_response_manager(response_manager *new_request,

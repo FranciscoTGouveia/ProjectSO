@@ -27,13 +27,8 @@ void getCTRLC(int s) {
 }
 
 int main(int argc, char **argv) {
-<<<<<<< HEAD
     if (argc != 4 && argc != 5) {
     fprintf(stderr, "usage: sub <register_pipe_name> <box_name>\n");
-=======
-    if (argc != 4) {
-        fprintf(stderr, "usage: sub <register_pipe_name> <box_name>\n");
->>>>>>> 80978e7a253394f30b25a0e6d9971112bd99900f
     }
     pipe_name = argv[2];
     request newrequest;

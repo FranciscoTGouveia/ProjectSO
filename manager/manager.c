@@ -96,15 +96,9 @@ void manager_list(list_manager_request *newrequest, char *pipe,
     qsort(list_of_boxes, (size_t)(counter + 1),
           sizeof(list_manager_response *), compare_func);
     for (int i = 0; i <= counter; i++) {
-<<<<<<< HEAD
         fprintf(stdout, "%s %zu %zu %zu %s\n", list_of_boxes[i]->box_name, 
         list_of_boxes[i]->box_size, list_of_boxes[i]->n_pubs, list_of_boxes[i]->n_subs,
         list_of_boxes[i]->box_password);
-=======
-        fprintf(stdout, "%s %zu %zu %zu\n", list_of_boxes[i]->box_name,
-                list_of_boxes[i]->box_size, list_of_boxes[i]->n_pubs,
-                list_of_boxes[i]->n_subs);
->>>>>>> 80978e7a253394f30b25a0e6d9971112bd99900f
     }
     for (int i = 0; i <= counter; i++) {
         free(list_of_boxes[i]);
@@ -116,7 +110,6 @@ void manager_list(list_manager_request *newrequest, char *pipe,
 int main(int argc, char **argv) {
     if (argc == 5 || argc == 6) { // Creation or deletion of a box
         request newrequest;
-<<<<<<< HEAD
         strcpy(newrequest.pipe_name, argv[2]);
         char box_name_slash[MAX_BOX_NAME];
         memset(box_name_slash, 0, MAX_BOX_NAME);
@@ -137,20 +130,6 @@ int main(int argc, char **argv) {
             newrequest.code = 5;
         }
         manager_create_remove(&newrequest, argv[2], argv[1]);
-=======
-        strcpy(newrequest.pipe_name, argv[argc - 3]);
-        char box_name_slash[MAX_BOX_NAME];
-        memset(box_name_slash, 0, MAX_BOX_NAME);
-        strcpy(box_name_slash, "/");
-        strcat(box_name_slash, argv[argc - 1]);
-        strcpy(newrequest.box_name, box_name_slash);
-        if (strcmp(argv[argc - 2], CREATE) == 0) {
-            newrequest.code = 3;
-        } else if (strcmp(argv[argc - 2], REMOVE) == 0) {
-            newrequest.code = 5;
-        }
-        manager_create_remove(&newrequest, argv[argc - 3], argv[argc - 4]);
->>>>>>> 80978e7a253394f30b25a0e6d9971112bd99900f
     } else if (argc == 4) { // Listing of all boxes
         list_manager_request newrequest;
         strcpy(newrequest.pipe_name, argv[argc - 2]);

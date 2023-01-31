@@ -10,19 +10,11 @@ request *reader_stc_request(uint8_t code_pipe, char buffer[MAX_LINE]) {
     request *request_pipe = my_malloc(sizeof(request));
     request_pipe->code = code_pipe;
     size_t offset = sizeof(uint8_t);
-<<<<<<< HEAD
     memcpy(request_pipe->pipe_name, buffer + offset, sizeof(char)*MAX_PIPE_NAME);
     offset += (sizeof(char)*MAX_PIPE_NAME);
     memcpy(request_pipe->box_name, buffer + offset, (sizeof(char)*MAX_BOX_NAME));
     offset += (sizeof(char)*MAX_BOX_NAME);
     memcpy(request_pipe->box_password, buffer + offset, sizeof(char)*MAX_PASSWORD);
-=======
-    memcpy(request_pipe->pipe_name, buffer + offset,
-           sizeof(char) * MAX_PIPE_NAME);
-    offset += (sizeof(char) * MAX_PIPE_NAME);
-    memcpy(request_pipe->box_name, buffer + offset,
-           (sizeof(char) * MAX_BOX_NAME));
->>>>>>> 80978e7a253394f30b25a0e6d9971112bd99900f
     return request_pipe;
 }
 
