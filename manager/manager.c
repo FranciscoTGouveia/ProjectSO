@@ -10,6 +10,7 @@
 #include <string.h>
 #define CREATE "create"
 #define REMOVE "remove"
+#define UNLOCK "unlock"
 static void print_usage() {
     fprintf(stderr, "usage: \n"
                     "   manager <register_pipe_name> create <box_name>\n"
@@ -128,6 +129,8 @@ int main(int argc, char **argv) {
             newrequest.code = 3;
         } else if (strcmp(argv[3], REMOVE) == 0) {
             newrequest.code = 5;
+        } else if (strcmp(argv[3], UNLOCK) == 0) {
+            newrequest.code = 11;
         }
         manager_create_remove(&newrequest, argv[2], argv[1]);
     } else if (argc == 4) { // Listing of all boxes
