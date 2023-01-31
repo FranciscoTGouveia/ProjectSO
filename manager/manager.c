@@ -94,8 +94,9 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
     my_close(fd);
     qsort(list_of_boxes, (size_t)(counter+1), sizeof(list_manager_response*), compare_func);
     for (int i = 0; i <= counter; i++) {
-        fprintf(stdout, "%s %zu %zu %zu\n", list_of_boxes[i]->box_name, 
-        list_of_boxes[i]->box_size, list_of_boxes[i]->n_pubs, list_of_boxes[i]->n_subs);
+        fprintf(stdout, "%s %zu %zu %zu %s\n", list_of_boxes[i]->box_name, 
+        list_of_boxes[i]->box_size, list_of_boxes[i]->n_pubs, list_of_boxes[i]->n_subs,
+        list_of_boxes[i]->box_password);
     }
     for (int i = 0; i <= counter; i++) {
         free(list_of_boxes[i]);
@@ -106,20 +107,28 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
 
 
 int main(int argc, char **argv) {
-    if (argc == 5) { // Creation or deletion of a box
+    if (argc == 5 || argc == 6) { // Creation or deletion of a box
         request newrequest;
-        strcpy(newrequest.pipe_name, argv[argc-3]);
+        strcpy(newrequest.pipe_name, argv[2]);
         char box_name_slash[MAX_BOX_NAME];
         memset(box_name_slash, 0, MAX_BOX_NAME);
         strcpy(box_name_slash, "/");
-        strcat(box_name_slash, argv[argc-1]);
+        strcat(box_name_slash, argv[4]);
         strcpy(newrequest.box_name, box_name_slash);
-        if (strcmp(argv[argc-2], CREATE) == 0) {
+        if (argc == 5) {
+            char password[MAX_PASSWORD];
+            memset(password, 0, MAX_PASSWORD);
+            strcpy(newrequest.box_password, password);
+        } else {
+            memset(newrequest.box_password, 0, MAX_PASSWORD);
+            strcpy(newrequest.box_password, argv[argc-1]);
+        }
+        if (strcmp(argv[3], CREATE) == 0) {
             newrequest.code = 3;
-        } else if (strcmp(argv[argc-2], REMOVE) == 0) {
+        } else if (strcmp(argv[3], REMOVE) == 0) {
             newrequest.code = 5;
         }
-        manager_create_remove(&newrequest, argv[argc-3], argv[argc-4]);
+        manager_create_remove(&newrequest, argv[2], argv[1]);
     } else if (argc == 4) { // Listing of all boxes
         list_manager_request newrequest;
         strcpy(newrequest.pipe_name, argv[argc - 2]);

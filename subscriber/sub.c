@@ -27,7 +27,7 @@ void getCTRLC(int s) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 4) {
+    if (argc != 4 && argc != 5) {
     fprintf(stderr, "usage: sub <register_pipe_name> <box_name>\n");
     }
     pipe_name = argv[2];
@@ -39,6 +39,13 @@ int main(int argc, char **argv) {
     strcpy(box_name_slash, "/");
     strcat(box_name_slash, argv[3]);
     strcpy(newrequest.box_name, box_name_slash);
+    if (argc == 4) {
+        char password[MAX_PASSWORD];
+        memset(password, 0, sizeof(char)*MAX_PASSWORD);
+        strcpy(newrequest.box_password, password);
+    } else {
+        strcpy(newrequest.box_password, argv[argc-1]);
+    }
     char server_request[MAX_LINE];
     writer_stc(&newrequest, newrequest.code, server_request);
     fd = my_open(argv[1], O_WRONLY);

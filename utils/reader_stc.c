@@ -14,6 +14,8 @@ request* reader_stc_request(uint8_t code_pipe, char buffer[MAX_LINE]) {
     memcpy(request_pipe->pipe_name, buffer + offset, sizeof(char)*MAX_PIPE_NAME);
     offset += (sizeof(char)*MAX_PIPE_NAME);
     memcpy(request_pipe->box_name, buffer + offset, (sizeof(char)*MAX_BOX_NAME));
+    offset += (sizeof(char)*MAX_BOX_NAME);
+    memcpy(request_pipe->box_password, buffer + offset, sizeof(char)*MAX_PASSWORD);
     return request_pipe;
 }
 
@@ -43,6 +45,8 @@ list_manager_response* reader_stc_list_response(uint8_t code_pipe, char buffer[M
     memcpy(&list_response->n_pubs, buffer + offset, sizeof(uint64_t));
     offset += sizeof(uint64_t);
     memcpy(&list_response->n_subs, buffer + offset, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
+    memcpy(list_response->box_password, buffer + offset, sizeof(char)*MAX_PASSWORD);
     return list_response;
 }
 

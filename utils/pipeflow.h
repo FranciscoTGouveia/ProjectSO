@@ -6,12 +6,14 @@
 #define MAX_PIPE_NAME 256
 #define MAX_BOX_NAME 32 
 #define MAX_LINE 1029
+#define MAX_PASSWORD 5 
 #define GLOBAL_PATH "global_fifo"
 
 typedef struct __attribute__ ((__packed__)){
     uint8_t code;
     char pipe_name[MAX_PIPE_NAME];
     char box_name[MAX_BOX_NAME];
+    char box_password[MAX_PASSWORD];
 } request;
 
 typedef struct __attribute__ ((__packed__)){
@@ -32,6 +34,7 @@ typedef struct __attribute__ ((__packed__)){
     uint64_t box_size;
     uint64_t n_pubs;
     uint64_t n_subs;
+    char box_password[MAX_PASSWORD];
 } list_manager_response;
 
 

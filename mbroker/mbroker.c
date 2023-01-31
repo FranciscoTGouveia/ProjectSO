@@ -58,6 +58,7 @@ void process_sub(void* arg, int* index) {
     int tester = 0;
     for (int i = 0; i < size_boxes; i++) {
         if (strcmp(((request*)arg)->box_name, server_boxes[i].box_name) == 0) {
+            if (strcmp(server_boxes[i].box_password, ((request*)arg)->box_password) != 0) break;
             tester = 1;
             thread_pool[*index].index = i;
             server_boxes[i].n_subs += 1;
@@ -141,6 +142,7 @@ void process_pub(void* arg, int* index) {
                 close(fd);
                 return;
             }
+            if (strcmp(server_boxes[i].box_password, ((request*)arg)->box_password) != 0) break;
             tester = 1;
             thread_pool[*index].index = i;
             server_boxes[i].n_pub = 1;
@@ -209,6 +211,7 @@ void process_manager_list(void* arg, int* index) {
             boxes_to_send[counter].box_size = (uint64_t)server_boxes[i].box_size; // need to calculate the size 
             boxes_to_send[counter].n_pubs = (unsigned int)server_boxes[i].n_pub;
             boxes_to_send[counter].n_subs = (unsigned int)server_boxes[i].n_subs;
+            strcpy(boxes_to_send[counter].box_password, server_boxes[i].box_password);
             counter++;
         }
     }
@@ -248,6 +251,14 @@ void process_manager_remove(void* arg, int* index) {
                 my_mutex_unlock(&box_size_lock);
                 return;
             }
+            if (strcmp(server_boxes[i].box_password,((request*)arg)->box_password) != 0) {
+                my_mutex_unlock(&box_size_lock);
+                response_manager response;
+                response.code = 6;
+                response.return_code = -1;
+                strcpy(response.error_message, "Ocorreu um erro palavra-passe errada");
+                return;
+            }
             thread_pool[*index].index = i;
             tester = 1;
             break;
@@ -267,6 +278,7 @@ void process_manager_remove(void* arg, int* index) {
         server_boxes[thread_pool[*index].index].n_subs = 0;
         server_boxes[thread_pool[*index].index].box_size = 0;
         memset(server_boxes[thread_pool[*index].index].box_name, 0, MAX_BOX_NAME);
+        memset(server_boxes[thread_pool[*index].index].box_password, 0, MAX_PASSWORD);
     }
     char buffer[MAX_LINE];
     writer_stc(&response, response.code, buffer);
@@ -321,6 +333,7 @@ void process_manager_create(void* arg, int* index) {
             thread_pool[*index].index = i;
             server_boxes[i].free = 1;
             strcpy(server_boxes[i].box_name, ((request*)arg)->box_name);
+            strcpy(server_boxes[i].box_password, ((request*)arg)->box_password);
             break;
         }
     }
@@ -336,6 +349,7 @@ void process_manager_create(void* arg, int* index) {
         thread_pool[*index].index = size_boxes;
         server_boxes[size_boxes].free = 1;
         strcpy(server_boxes[size_boxes].box_name, ((request*)arg)->box_name);
+        strcpy(server_boxes[size_boxes].box_password, ((request*)arg)->box_password);
         size_boxes*=2;
     }
     tester = 0;
@@ -349,6 +363,7 @@ void process_manager_create(void* arg, int* index) {
     if (tester == 1) {
         server_boxes[thread_pool[*index].index].free = 0; //if you cant create the box it really isnt free
         memset(server_boxes[thread_pool[*index].index].box_name, 0, MAX_BOX_NAME);
+        memset(server_boxes[thread_pool[*index].index].box_password, 0, MAX_PASSWORD);
         response.return_code = -1;
         strcpy(response.error_message, "Ocorreu um erro na criação da caixa");
     } else {
@@ -403,11 +418,13 @@ int main(int argc, char **argv) {
     my_mutex_init(&box_size_lock, NULL);
     my_mutex_init(&thread_lock, NULL);
     my_cond_init(&thread_cond, NULL);
-    int index;
+    int index[atoi(argv[2])];
+    for (int i = 0; i < atoi(argv[2]); i++) {
+        index[i] = i;
+    }
     for (int i = 0; i < atoi(argv[2]); i++) {
         thread_pool->index = -1;
-        index = i;
-        if (pthread_create(&thread_pool->thread, NULL, thread_init, (void *)&index) == -1) exit(1);
+        if (pthread_create(&thread_pool->thread, NULL, thread_init, (void *)&index[i]) == -1) exit(1);
         server_boxes[i].free = 0;
         my_cond_init(&server_boxes[i].cond_var, NULL);
         my_mutex_init(&server_boxes[i].box_lock, NULL);

@@ -13,6 +13,8 @@ void writer_stc_request(request* new_request, char buffer[MAX_LINE]) {
     memcpy(buffer + offset, new_request->pipe_name, sizeof(new_request->pipe_name));
     offset += (sizeof(char)*MAX_PIPE_NAME);
     memcpy(buffer + offset, new_request->box_name, sizeof(new_request->box_name));
+    offset += (sizeof(char)*MAX_BOX_NAME);
+    memcpy(buffer + offset, new_request->box_password, sizeof(new_request->box_password));
 }
 
 
@@ -48,6 +50,8 @@ void writer_stc_list_response(list_manager_response* new_request, char buffer[MA
     memcpy(buffer + offset, &new_request->n_pubs, sizeof(uint64_t));
     offset += sizeof(uint64_t);
     memcpy(buffer + offset, &new_request->n_subs, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
+    memcpy(buffer + offset, new_request->box_password, sizeof(new_request->box_password));
 }
 
 

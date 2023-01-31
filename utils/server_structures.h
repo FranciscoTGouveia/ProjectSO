@@ -17,6 +17,7 @@ typedef struct {
     int n_subs;
     int free; //0 if is free 1 if not
     int box_size;
+    char box_password[MAX_PASSWORD];
 } box;
 
 
