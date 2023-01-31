@@ -6,7 +6,7 @@
 
 typedef struct {
     pthread_t thread;
-    int index; 
+    int index;
 } thread;
 
 typedef struct {
@@ -15,10 +15,9 @@ typedef struct {
     pthread_mutex_t box_lock;
     int n_pub;
     int n_subs;
-    int free; //0 if is free 1 if not
+    int free; // 0 if is free 1 if not
     int box_size;
     char box_password[MAX_PASSWORD];
 } box;
-
 
 #endif

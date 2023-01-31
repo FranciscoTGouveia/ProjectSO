@@ -95,8 +95,8 @@ int tfs_close(int fhandle);
  *   - buffer: buffer containing the contents to write
  *   - len: length of the buffer contents (in bytes)
  *
- * Returns the number of bytes that were written (can be lower than 'len' if the
- * maximum file size is exceeded), or -1 in case of error.
+ * Returns the number of bytes that were written (can be lower than 'len' if
+ * the maximum file size is exceeded), or -1 in case of error.
  */
 ssize_t tfs_write(int fhandle, void const *buffer, size_t len);
 
@@ -108,8 +108,9 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t len);
  *   - buffer: destination buffer
  *   - len: length of the buffer
  *
- * Returns the number of bytes that were copied from the file to the buffer (can
- * be lower than 'len' if the file size was reached), or -1 in case of error.
+ * Returns the number of bytes that were copied from the file to the buffer
+ * (can be lower than 'len' if the file size was reached), or -1 in case of
+ * error.
  */
 ssize_t tfs_read(int fhandle, void *buffer, size_t len);
 

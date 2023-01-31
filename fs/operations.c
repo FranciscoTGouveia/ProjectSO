@@ -54,8 +54,8 @@ static bool valid_pathname(char const *name) {
 /**
  * Looks for a file.
  *
- * Note: as a simplification, only a plain directory space (root directory only)
- * is supported.
+ * Note: as a simplification, only a plain directory space (root directory
+ * only) is supported.
  *
  * Input:
  *   - name: absolute path name
@@ -85,9 +85,9 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
     int inum = tfs_lookup(name, root_dir_inode);
     size_t offset;
 
-    if (inum >= 0 ) {
+    if (inum >= 0) {
         // The file already exists
-        pthread_rwlock_t* lock = inode_lock_get(inum);
+        pthread_rwlock_t *lock = inode_lock_get(inum);
         my_w_lock(lock);
         inode_t *inode = inode_get(inum);
         ALWAYS_ASSERT(inode != NULL,
@@ -117,8 +117,8 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
         }
         my_unlock(lock);
     } else if (mode & TFS_O_CREAT) {
-        // The file does not exist; the mode specified that it should be created
-        // Create inode
+        // The file does not exist; the mode specified that it should be
+        // created Create inode
         inum = inode_create(T_FILE);
         if (inum == -1) {
             return -1; // no space in inode table
@@ -139,16 +139,13 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
     // handle
     return add_to_open_file_table(inum, offset);
 
-    // Note: for simplification, if file was created with TFS_O_CREAT and there
-    // is an error adding an entry to the open file table, the file is not
-    // opened but it remains created
+    // Note: for simplification, if file was created with TFS_O_CREAT and
+    // there is an error adding an entry to the open file table, the file is
+    // not opened but it remains created
 }
 
-
-
-
 /**
- * @brief Soft links a file to a another 
+ * @brief Soft links a file to a another
  * @note If the target file doesn't exist then it will return -1
  * @param target absolute target path name
  * @param link_name absolute linked path name
@@ -156,48 +153,70 @@ int tfs_open(char const *name, tfs_file_mode_t mode) {
  */
 int tfs_sym_link(char const *target, char const *link_name) {
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
-    if (root_dir_inode == NULL) {return -1;}
+    if (root_dir_inode == NULL) {
+        return -1;
+    }
     int inumber_target = tfs_lookup(target, root_dir_inode);
-    if (inumber_target == -1) {return -1;}
-    pthread_rwlock_t* lock_target = inode_lock_get(inumber_target);
+    if (inumber_target == -1) {
+        return -1;
+    }
+    pthread_rwlock_t *lock_target = inode_lock_get(inumber_target);
     my_r_lock(lock_target);
     int inumber = inode_create(T_SOFT_LINK);
-    if (inumber == -1) {my_unlock(lock_target);return -1;}
-    pthread_rwlock_t* lock = inode_lock_get(inumber);
+    if (inumber == -1) {
+        my_unlock(lock_target);
+        return -1;
+    }
+    pthread_rwlock_t *lock = inode_lock_get(inumber);
     my_w_lock(lock);
     inode_t *inode = inode_get(inumber);
-    if (inode == NULL) {my_unlock(lock_target);my_unlock(lock);return -1;}
-    void* block = data_block_get(inode->i_data_block);
-    if (block == NULL) {my_unlock(lock_target);my_unlock(lock);return -1;}
-    strcpy(block,target);
-    add_dir_entry(root_dir_inode, link_name + 1,inumber);
+    if (inode == NULL) {
+        my_unlock(lock_target);
+        my_unlock(lock);
+        return -1;
+    }
+    void *block = data_block_get(inode->i_data_block);
+    if (block == NULL) {
+        my_unlock(lock_target);
+        my_unlock(lock);
+        return -1;
+    }
+    strcpy(block, target);
+    add_dir_entry(root_dir_inode, link_name + 1, inumber);
     my_unlock(lock_target);
     my_unlock(lock);
     return 0;
 }
 
-
-
-
 /**
- * @brief Hard links a file to another 
+ * @brief Hard links a file to another
  * @note If the target file doesn't exist then it will return -1
- * @param target absolute target path name 
+ * @param target absolute target path name
  * @param link_name absolute linked path name
  * @return 0 if successeful, -1 if it doesn't
  */
 int tfs_link(char const *target, char const *link_name) {
     inode_t *root_dir_inode = inode_get(ROOT_DIR_INUM);
-    if (root_dir_inode == NULL) {return -1;}
+    if (root_dir_inode == NULL) {
+        return -1;
+    }
     int inumber = tfs_lookup(target, root_dir_inode);
-    if (inumber == -1) {return -1;}
-    pthread_rwlock_t* lock = inode_lock_get(inumber);
+    if (inumber == -1) {
+        return -1;
+    }
+    pthread_rwlock_t *lock = inode_lock_get(inumber);
     my_w_lock(lock);
-    inode_t* inode = inode_get(inumber);
-    if (inode == NULL) {my_unlock(lock);return -1;}
-    if (inode->i_node_type == T_SOFT_LINK) {my_unlock(lock);return -1;}
+    inode_t *inode = inode_get(inumber);
+    if (inode == NULL) {
+        my_unlock(lock);
+        return -1;
+    }
+    if (inode->i_node_type == T_SOFT_LINK) {
+        my_unlock(lock);
+        return -1;
+    }
     inode->i_count++;
-    add_dir_entry(root_dir_inode,link_name + 1, inumber);
+    add_dir_entry(root_dir_inode, link_name + 1, inumber);
     my_unlock(lock);
     return 0;
 }
@@ -207,7 +226,7 @@ int tfs_close(int fhandle) {
     if (file == NULL) {
         return -1; // invalid fd
     }
-    pthread_rwlock_t* lock_f = get_open_file_lock(fhandle);
+    pthread_rwlock_t *lock_f = get_open_file_lock(fhandle);
     my_w_lock(lock_f);
     remove_from_open_file_table(fhandle);
     my_unlock(lock_f);
@@ -220,9 +239,9 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
         return -1;
     }
     //  From the open file table entry, we get the inode
-    pthread_rwlock_t* lock = inode_lock_get(file->of_inumber);
+    pthread_rwlock_t *lock = inode_lock_get(file->of_inumber);
     my_w_lock(lock);
-    pthread_rwlock_t* lock_f = get_open_file_lock(fhandle);
+    pthread_rwlock_t *lock_f = get_open_file_lock(fhandle);
     my_w_lock(lock_f);
     inode_t *inode = inode_get(file->of_inumber);
     ALWAYS_ASSERT(inode != NULL, "tfs_write: inode of open file deleted");
@@ -247,12 +266,14 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
         }
 
         void *block = data_block_get(inode->i_data_block);
-        ALWAYS_ASSERT(block != NULL, "tfs_write: data block deleted mid-write");
+        ALWAYS_ASSERT(block != NULL,
+                      "tfs_write: data block deleted mid-write");
 
         // Perform the actual write
         memcpy(block + file->of_offset, buffer, to_write);
 
-        // The offset associated with the file handle is incremented accordingly
+        // The offset associated with the file handle is incremented
+        // accordingly
         file->of_offset += to_write;
         if (file->of_offset > inode->i_size) {
             inode->i_size = file->of_offset;
@@ -271,9 +292,9 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     }
 
     // From the open file table entry, we get the inode
-    pthread_rwlock_t* lock = inode_lock_get(file->of_inumber);
+    pthread_rwlock_t *lock = inode_lock_get(file->of_inumber);
     my_r_lock(lock);
-    pthread_rwlock_t* lock_f = get_open_file_lock(fhandle);
+    pthread_rwlock_t *lock_f = get_open_file_lock(fhandle);
     my_r_lock(lock_f);
     inode_t const *inode = inode_get(file->of_inumber);
     ALWAYS_ASSERT(inode != NULL, "tfs_read: inode of open file deleted");
@@ -286,15 +307,17 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     if (to_read > 0) {
         void *block = data_block_get(inode->i_data_block);
         ALWAYS_ASSERT(block != NULL, "tfs_read: data block deleted mid-read");
-        if (((char*)(block + file->of_offset))[0] == '\0') {
+        if (((char *)(block + file->of_offset))[0] == '\0') {
             file->of_offset++;
         }
         if (memchr(block + file->of_offset, 0, to_read) != NULL) {
-            to_read = (size_t)(memchr(block + file->of_offset, 0, to_read) - (block + file->of_offset));
+            to_read = (size_t)(memchr(block + file->of_offset, 0, to_read) -
+                               (block + file->of_offset));
         }
         // Perform the actual read
         memcpy(buffer, block + file->of_offset, to_read);
-        // The offset associated with the file handle is incremented accordingly
+        // The offset associated with the file handle is incremented
+        // accordingly
         file->of_offset += to_read;
     }
     my_unlock(lock);
@@ -302,61 +325,69 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     return (ssize_t)to_read;
 }
 
-
-
 /**
- * @brief Unlinks or deletes a file, depending in its hard link counter and in its type 
- * 
+ * @brief Unlinks or deletes a file, depending in its hard link counter and in
+ * its type
+ *
  * @param target absolute target path name
  * @return 0 if successeful, -1 if it doesn't
  */
 int tfs_unlink(char const *target) {
-    inode_t* root = inode_get(ROOT_DIR_INUM);
-    if (root == NULL) {return -1;}
+    inode_t *root = inode_get(ROOT_DIR_INUM);
+    if (root == NULL) {
+        return -1;
+    }
     int inumber = tfs_lookup(target, root);
-    if (inumber == -1) {return -1;}
-    pthread_rwlock_t* lock = inode_lock_get(inumber);
+    if (inumber == -1) {
+        return -1;
+    }
+    pthread_rwlock_t *lock = inode_lock_get(inumber);
     my_w_lock(lock);
-    inode_t* inode = inode_get(inumber);
-    if (inode == NULL) {my_unlock(lock);return -1;} 
+    inode_t *inode = inode_get(inumber);
+    if (inode == NULL) {
+        my_unlock(lock);
+        return -1;
+    }
     clear_dir_entry(root, target + 1);
-    if (inode->i_count > 1) {inode->i_count--;} 
-    else {inode_delete(inumber);}
+    if (inode->i_count > 1) {
+        inode->i_count--;
+    } else {
+        inode_delete(inumber);
+    }
     my_unlock(lock);
     return 0;
 }
 
-
 /**
- * @brief Copies a file from another file system to ist's one 
+ * @brief Copies a file from another file system to ist's one
  * @note Reads from the source file 1024 bytes at a time
- * @param source_path absolute source path name 
+ * @param source_path absolute source path name
  * @param dest_path absolute destiny path name
  * @return 0 if successeful, -1 if it doesn't
  */
-int tfs_copy_from_external_fs(char const *source_path, char const *dest_path) {
+int tfs_copy_from_external_fs(char const *source_path,
+                              char const *dest_path) {
     char buffer[1024];
-    FILE* file = fopen(source_path,"r");
-    if(file == NULL){
+    FILE *file = fopen(source_path, "r");
+    if (file == NULL) {
         return -1;
     }
 
-    int outd = tfs_open(dest_path,TFS_O_CREAT | TFS_O_TRUNC);
-    if(outd == -1){
+    int outd = tfs_open(dest_path, TFS_O_CREAT | TFS_O_TRUNC);
+    if (outd == -1) {
         return -1;
     }
     size_t bytes_read;
     ssize_t bytes_written;
-    while((bytes_read = fread(buffer,sizeof(char),sizeof(buffer),file)) > 0){
-        bytes_written = tfs_write(outd, buffer,(size_t) bytes_read);
-        if(bytes_written != bytes_read){
+    while ((bytes_read = fread(buffer, sizeof(char), sizeof(buffer), file)) >
+           0) {
+        bytes_written = tfs_write(outd, buffer, (size_t)bytes_read);
+        if (bytes_written != bytes_read) {
             return -1;
         }
     }
-    
+
     fclose(file);
     tfs_close(outd);
     return 0;
 }
-
-

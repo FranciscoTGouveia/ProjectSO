@@ -17,15 +17,14 @@ static void print_usage() {
                     "   manager <register_pipe_name> list\n");
 }
 
-
-int compare_func(const void*a, const void* b) {
-    list_manager_response* first = *(list_manager_response**)a;
-    list_manager_response* second = *(list_manager_response**)b;
+int compare_func(const void *a, const void *b) {
+    list_manager_response *first = *(list_manager_response **)a;
+    list_manager_response *second = *(list_manager_response **)b;
     return strcmp(first->box_name, second->box_name);
 }
 
-
-void manager_request(void* newrequest,uint8_t code_pipe ,char* register_pipe) {
+void manager_request(void *newrequest, uint8_t code_pipe,
+                     char *register_pipe) {
     char buffer[MAX_LINE];
     int fd;
     writer_stc(newrequest, code_pipe, buffer);
@@ -34,15 +33,15 @@ void manager_request(void* newrequest,uint8_t code_pipe ,char* register_pipe) {
     my_close(fd);
 }
 
-
-void manager_create_remove(request* newrequest, char* pipe, char* register_pipe) {
-    manager_request(newrequest,newrequest->code,register_pipe);
+void manager_create_remove(request *newrequest, char *pipe,
+                           char *register_pipe) {
+    manager_request(newrequest, newrequest->code, register_pipe);
     int fd;
     my_mkfifo(pipe, 0777);
     fd = my_open(pipe, O_RDONLY);
     char message[MAX_LINE];
     my_read(fd, message, sizeof(message));
-    response_manager* response = reader_stc(message);
+    response_manager *response = reader_stc(message);
     if (response->return_code == -1) {
         fprintf(stdout, "ERROR %s\n", response->error_message);
     } else {
@@ -53,20 +52,21 @@ void manager_create_remove(request* newrequest, char* pipe, char* register_pipe)
     my_unlink(pipe);
 }
 
-
-
-void manager_list(list_manager_request* newrequest, char* pipe, char*register_pipe) {
+void manager_list(list_manager_request *newrequest, char *pipe,
+                  char *register_pipe) {
     manager_request(newrequest, newrequest->code, register_pipe);
     int fd;
     my_mkfifo(pipe, 0777);
     size_t size = 100;
     int counter = 0;
-    list_manager_response** list_of_boxes = my_malloc(size*sizeof(list_manager_response*));
+    list_manager_response **list_of_boxes =
+        my_malloc(size * sizeof(list_manager_response *));
     fd = my_open(pipe, O_RDONLY);
     while (1) {
-        // Will keep on reading through, until mbroker stops sending boxes list responses
+        // Will keep on reading through, until mbroker stops sending boxes
+        // list responses
         char message[MAX_LINE];
-        memset(message, 0 ,MAX_LINE);
+        memset(message, 0, MAX_LINE);
         if (read(fd, message, sizeof(message)) < 0) exit(1);
         list_of_boxes[counter] = reader_stc(message);
         if (list_of_boxes[counter]->last == 1) {
@@ -83,7 +83,8 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
         counter++;
         if (counter == size) { // Resize the array of boxes
             size *= 2;
-            list_of_boxes = realloc(list_of_boxes, size*sizeof(list_manager_response*));
+            list_of_boxes = realloc(list_of_boxes,
+                                    size * sizeof(list_manager_response *));
             if (list_of_boxes == NULL) {
                 my_close(fd);
                 my_unlink(pipe);
@@ -92,11 +93,18 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
         }
     }
     my_close(fd);
-    qsort(list_of_boxes, (size_t)(counter+1), sizeof(list_manager_response*), compare_func);
+    qsort(list_of_boxes, (size_t)(counter + 1),
+          sizeof(list_manager_response *), compare_func);
     for (int i = 0; i <= counter; i++) {
+<<<<<<< HEAD
         fprintf(stdout, "%s %zu %zu %zu %s\n", list_of_boxes[i]->box_name, 
         list_of_boxes[i]->box_size, list_of_boxes[i]->n_pubs, list_of_boxes[i]->n_subs,
         list_of_boxes[i]->box_password);
+=======
+        fprintf(stdout, "%s %zu %zu %zu\n", list_of_boxes[i]->box_name,
+                list_of_boxes[i]->box_size, list_of_boxes[i]->n_pubs,
+                list_of_boxes[i]->n_subs);
+>>>>>>> 80978e7a253394f30b25a0e6d9971112bd99900f
     }
     for (int i = 0; i <= counter; i++) {
         free(list_of_boxes[i]);
@@ -105,10 +113,10 @@ void manager_list(list_manager_request* newrequest, char* pipe, char*register_pi
     my_unlink(pipe);
 }
 
-
 int main(int argc, char **argv) {
     if (argc == 5 || argc == 6) { // Creation or deletion of a box
         request newrequest;
+<<<<<<< HEAD
         strcpy(newrequest.pipe_name, argv[2]);
         char box_name_slash[MAX_BOX_NAME];
         memset(box_name_slash, 0, MAX_BOX_NAME);
@@ -129,11 +137,27 @@ int main(int argc, char **argv) {
             newrequest.code = 5;
         }
         manager_create_remove(&newrequest, argv[2], argv[1]);
+=======
+        strcpy(newrequest.pipe_name, argv[argc - 3]);
+        char box_name_slash[MAX_BOX_NAME];
+        memset(box_name_slash, 0, MAX_BOX_NAME);
+        strcpy(box_name_slash, "/");
+        strcat(box_name_slash, argv[argc - 1]);
+        strcpy(newrequest.box_name, box_name_slash);
+        if (strcmp(argv[argc - 2], CREATE) == 0) {
+            newrequest.code = 3;
+        } else if (strcmp(argv[argc - 2], REMOVE) == 0) {
+            newrequest.code = 5;
+        }
+        manager_create_remove(&newrequest, argv[argc - 3], argv[argc - 4]);
+>>>>>>> 80978e7a253394f30b25a0e6d9971112bd99900f
     } else if (argc == 4) { // Listing of all boxes
         list_manager_request newrequest;
         strcpy(newrequest.pipe_name, argv[argc - 2]);
         newrequest.code = 7;
-        manager_list(&newrequest, argv[argc-2], argv[argc-3]);
-    } else { print_usage(); }
+        manager_list(&newrequest, argv[argc - 2], argv[argc - 3]);
+    } else {
+        print_usage();
+    }
     return 0;
 }
