@@ -71,7 +71,7 @@ messages_pipe *reader_stc_message(uint8_t code_pipe, char buffer[MAX_LINE]) {
 request_new_password* reader_stc_new_password(uint8_t code_pipe, char buffer[MAX_LINE]) {
     request_new_password* request_password = my_malloc(sizeof(request_new_password));
     request* request_password_helper = reader_stc_request(code_pipe, buffer);
-    memcpy(request_password->request_lock, request_password_helper, sizeof(request));
+    request_password->request_lock = request_password_helper;
     size_t offset = sizeof(uint8_t) + (sizeof(char)*MAX_PIPE_NAME) + (sizeof(char)*MAX_BOX_NAME)
     + (sizeof(char)*MAX_PASSWORD);
     memcpy(request_password->new_password, buffer + offset, sizeof(char)*MAX_PASSWORD);

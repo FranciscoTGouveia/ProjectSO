@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
             strcpy(newrequest.box_password, password);
         } else {
             memset(newrequest.box_password, 0, MAX_PASSWORD);
-            strcpy(newrequest.box_password, argv[4]);
+            strcpy(newrequest.box_password, argv[5]);
         }
         if (strcmp(argv[3], CREATE) == 0) {
             newrequest.code = 3;
@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
                 strcpy(new_password.new_password, newrequest.box_password);
                 memset(newrequest.box_password, 0, MAX_PASSWORD);
             } else {
-                strcpy(new_password.new_password, argv[5]);
+                strcpy(new_password.new_password, argv[6]);
             }
             new_password.request_lock = &newrequest;
             manager_create_remove(&new_password, argv[2], argv[1], 

@@ -540,6 +540,9 @@ int main(int argc, char **argv) {
             case 11:
                 newtask->function = &process_manager_unlock;
                 break;
+            case 13:
+                newtask->function = &process_manager_lock;
+                break;
             default:
                 break;
         }
